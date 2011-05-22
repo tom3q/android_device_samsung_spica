@@ -112,8 +112,6 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/common/xbin/powertop:system/xbin/powertop \
     device/samsung/spica/prebuilt/common/xbin/openvpn-up.sh:system/xbin/openvpn-up.sh
 
-SPICA_WITH_GOOGLE:=true
-# I'll always build with gapps :)
 ifdef SPICA_WITH_GOOGLE
 PRODUCT_COPY_FILES += \
     vendor/spica/proprietary/CarHomeLauncher.apk:system/app/CarHomeLauncher.apk \
