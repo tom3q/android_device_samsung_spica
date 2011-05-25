@@ -115,7 +115,6 @@ PRODUCT_COPY_FILES += \
 ifdef SPICA_WITH_GOOGLE
 PRODUCT_COPY_FILES += \
     vendor/spica/proprietary/CarHomeLauncher.apk:system/app/CarHomeLauncher.apk \
-    vendor/spica/proprietary/FOTAKill.apk:system/app/FOTAKill.apk \
     vendor/spica/proprietary/GenieWidget.apk:system/app/GenieWidget.apk \
     vendor/spica/proprietary/GoogleBackupTransport.apk:system/app/GoogleBackupTransport.apk \
     vendor/spica/proprietary/GoogleCalendarSyncAdapter.apk:system/app/GoogleCalendarSyncAdapter.apk \
