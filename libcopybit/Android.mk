@@ -26,5 +26,5 @@ LOCAL_MODULE := copybit.GT-I5700
 LOCAL_MODULE_TAGS := optional
 LOCAL_C_INCLUDES += ../libgralloc ../modules/g2d
 LOCAL_ARM_MODE := arm
-LOCAL_CFLAGS += -DCOPYBIT_S3C6410=1 -mcpu=arm1176jzf-s -mfpu=vfp -O2
+LOCAL_CFLAGS += -DCOPYBIT_S3C6410=1 -mcpu=arm1176jzf-s -mfpu=vfp -O3
 include $(BUILD_SHARED_LIBRARY)

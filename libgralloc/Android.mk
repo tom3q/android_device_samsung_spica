@@ -31,5 +31,5 @@ LOCAL_SRC_FILES := 	\
 LOCAL_MODULE := gralloc.GT-I5700
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_CFLAGS += -DLOG_TAG=\"gralloc\" -mcpu=arm1176jzf-s -mfpu=vfp -O2 -Wall
+LOCAL_CFLAGS += -DLOG_TAG=\"gralloc\" -mcpu=arm1176jzf-s -mfpu=vfp -O3 -Wall
 include $(BUILD_SHARED_LIBRARY)
