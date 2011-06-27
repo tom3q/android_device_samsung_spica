@@ -3,9 +3,6 @@ PRODUCT_NAME := CyanogenMod
 PRODUCT_BRAND := criminal
 PRODUCT_DEVICE := generic
 
-# Use edify for otapackage
-PRODUCT_SPECIFIC_DEFINES += TARGET_OTA_SCRIPT_MODE=amend
-
 # Used by BusyBox
 KERNEL_MODULES_DIR:=/lib/modules
 
