@@ -31,10 +31,12 @@ TARGET_ARCH_VARIANT_CPU := arm1176jzf-s
 TARGET_BOOTLOADER_BOARD_NAME := GT-I5700
 TARGET_BOARD_PLATFORM := s3c6410
 
-TARGET_NO_RECOVERY := true
+TARGET_NO_RECOVERY := false
 TARGET_NO_BOOTLOADER := true
 TARGET_NO_KERNEL := true
 TARGET_NO_RADIOIMAGE := true
+
+BOARD_CUSTOM_RECOVERY_KEYMAPPING:= ../../device/samsung/spica/recovery/recovery_ui.c
 
 BOARD_BOOTIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x00280000)
 BOARD_RECOVERYIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x00500000)
@@ -56,6 +58,7 @@ TARGET_USES_OLD_LIBSENSORS_HAL := true
 TARGET_SENSORS_NO_OPEN_CHECK := true
 
 TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/devices/platform/s3c6410-usbgadget/gadget/lun"
+BOARD_UMS_LUNFILE := "/sys/devices/platform/s3c6410-usbgadget/gadget/lun0/file"
 # use pre-kernel.35 vold usb mounting
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 
