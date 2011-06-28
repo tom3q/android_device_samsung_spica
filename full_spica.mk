@@ -11,6 +11,13 @@ DEVICE_PACKAGE_OVERLAYS += device/samsung/spica/overlay
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.sf.lcd_density=160
 
+# Init files
+PRODUCT_COPY_FILES += \
+        device/samsung/spica/init.rc:root/init.rc \
+        device/samsung/spica/init.gt-i5700.rc:root/init.gt-i5700.rc \
+        device/samsung/spica/ueventd.gt-i5700.rc:root/ueventd.gt-i5700.rc \
+        device/samsung/spica/recovery.rc:root/recovery.rc
+
 PRODUCT_COPY_FILES += \
         device/common/gps/gps.conf_EU_SUPL:system/etc/gps.conf
 
