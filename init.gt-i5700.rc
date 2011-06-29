@@ -47,9 +47,7 @@ on boot
     chmod 660 /sys/class/sec/gps/GPS_PWR_EN/value
 
 on fs
-    # Mount /system rw first to give the filesystem a chance to save a checkpoint
-    # /system
-    mount ubifs /dev/ubi0_0 /system
+    # Remount /system read-only, because it was mounted rw first (see: init.rc)
     mount ubifs /dev/ubi0_0 /system ro remount
 
     # /data
@@ -66,11 +64,11 @@ on fs
 #    chmod 770 /efs/imei
 
 # permissions for bluetooth.
-    chown bluetooth bluetooth /efs/bluetooth
-    chown bluetooth bluetooth ro.bt.bdaddr_path
-    chmod 0660 /sys/class/rfkill/rfkill0/state
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+#    chown bluetooth bluetooth /efs/bluetooth
+#    chown bluetooth bluetooth ro.bt.bdaddr_path
+#    chmod 0660 /sys/class/rfkill/rfkill0/state
+#    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+#    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
 
 # Permissions for System Server and daemons.
     chown system system /sys/class/backlight/s6d05a-lcd/brightness
@@ -138,9 +136,7 @@ on post-fs
     chmod 0660 /data/misc/wifi/wpa_supplicant.conf
     mkdir /data/local 0771 shell shell
     mkdir /data/local/tmp 0771 shell shell
-    #mkdir /data/data 0771 system system
-    # symlink /data/data to /datadata for performance
-    symlink /datadata /data/data
+    mkdir /data/data 0771 system system
 
     mkdir /data/app-private 0771 system system
     mkdir /data/app 0771 system system
@@ -181,11 +177,7 @@ on post-fs
     chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
     chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 
-# 3D init
-service gpsd /system/vendor/bin/gpsd -c /vendor/etc/gps.xml
-    socket gps seqpacket 0660 gps system
-    user gps
-    group system inet
+
 
 service wpa_supplicant /system/bin/wpa_supplicant -Dwext -ieth0 -c/data/misc/wifi/wpa_supplicant.conf
     socket wpa_eth0 dgram 0660 wifi wifi

@@ -5,7 +5,7 @@ on init
 
 sysclktz 0
 
-loglevel 9
+loglevel 3
 
 # setup the global environment
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
@@ -36,12 +36,14 @@ loglevel 9
     mkdir /acct
     mount cgroup none /acct cpuacct
     mkdir /acct/uid
-    mkdir /system
+
     mkdir /data 0771 system system
-    mkdir /datadata 0771 system system
     mkdir /cache 0771 system cache
     mkdir /config 0500 root root
     mkdir /xbin
+
+    # Create a link to have a working recovery system
+    # even in case /system fails to mount
     symlink /xbin /system/bin
 
     # Directory for putting things only root should see.
@@ -78,7 +80,6 @@ loglevel 9
     chown system system /dev/cpuctl
     chown system system /dev/cpuctl/tasks
     chmod 0777 /dev/cpuctl/tasks
-    write /dev/cpuctl/cpu.shares 1024
 
     mkdir /dev/cpuctl/fg_boost
     chown system system /dev/cpuctl/fg_boost/tasks
@@ -143,7 +144,7 @@ on boot
     write /sys/module/lowmemorykiller/parameters/minfree 2048,3072,4096,6144,7168,8192
 
     # Set init its forked children's oom_adj.
-    write /proc/1/oom_adj -16
+    write /proc/1/oom_score_adj -999
 
     # Tweak background writeout
     write /proc/sys/vm/dirty_expire_centisecs 200
