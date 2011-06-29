@@ -33,10 +33,6 @@ on boot
 
 # change permission for uart_switch
     chown radio radio /sys/class/sec/uart_switch/UART_SEL/value
-    chown compass root /sys/class/input/input3/distortion
-    chown compass root /sys/class/input/input3/offsets
-    chown compass root /sys/class/input/input3/shape
-    chown compass root /sys/class/input/input3/threshold
     chmod 660 /sys/class/sec/uart_switch/UART_SEL/value
 
 # change permission for compass
@@ -72,14 +68,12 @@ on fs
 # permissions for bluetooth.
     chown bluetooth bluetooth /efs/bluetooth
     chown bluetooth bluetooth ro.bt.bdaddr_path
-    chown bluetooth bluetooth /dev/s3c2410_serial0
-    chmod 0600 /dev/s3c2410_serial0
     chmod 0660 /sys/class/rfkill/rfkill0/state
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
 
 # Permissions for System Server and daemons.
-    chown system system /sys/class/backlight/s6d05a_bl/brightness
+    chown system system /sys/class/backlight/s6d05a-lcd/brightness
 
 on post-fs
     # load modules
