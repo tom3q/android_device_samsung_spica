@@ -76,6 +76,7 @@ on fs
 on post-fs
     # load modules
     insmod /lib/modules/s3c_g2d_driver.ko
+    insmod /lib/modules/s3c_g3d.ko
 
     # remove /sbin/sh so that "adb install" can work properly
     exec /sbin/setupenv.sh

@@ -6,6 +6,8 @@
 /dev/s3c-mem              0660   system     system
 /dev/s3c-mfc              0660   system     graphics
 /dev/s3c-g2d              0660   system     graphics
+/dev/s3c-g3d              0660   system     graphics
+/dev/pmem_gpu1            0660   system     graphics
 
 /dev/modem_ctl            0660   radio      radio
 /dev/modem_fmt            0660   radio      radio
