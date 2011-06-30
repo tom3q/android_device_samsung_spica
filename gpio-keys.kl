@@ -1,0 +1,4 @@
+# gpio-keys key layout for Samsung Galaxy Spica
+
+key 249     ENDCALL         WAKE_DROPPED
+key 251     POWER           WAKE

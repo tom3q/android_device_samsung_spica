@@ -86,14 +86,6 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/spica/fimg-libs/egl.cfg:system/lib/egl/egl.cfg
 
 #
-# Keys
-#
-PRODUCT_COPY_FILES += \
-    device/samsung/spica/prebuilt/spica/keys/s3c-keypad-rev0020.kl:system/usr/keylayout/s3c-keypad-rev0020.kl \
-    device/samsung/spica/prebuilt/spica/keys/sec_headset.kl:system/usr/keylayout/sec_headset.kl \
-    device/samsung/spica/prebuilt/spica/keys/s3c-keypad-rev0020.kcm.bin:system/usr/keychars/s3c-keypad-rev0020.kcm.bin
-
-#
 # Vold
 #
 PRODUCT_COPY_FILES += \
@@ -145,6 +137,20 @@ PRODUCT_COPY_FILES += \
 #
 PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/spica/placeholder/.placeholder:system/sd/.placeholder
+
+#
+# Prebuilt kl keymaps
+#
+PRODUCT_COPY_FILES += \
+    device/samsung/spica/samsung-keypad.kl:system/usr/keylayout/samsung-keypad.kl \
+    device/samsung/spica/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl \
+
+#
+# Generated kcm keymaps
+#
+PRODUCT_PACKAGES := \
+       samsung-keypad.kcm \
+       gpio-keys.kcm
 
 #
 # Setup device specific product configuration.
