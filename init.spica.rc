@@ -12,8 +12,8 @@ on boot
 # Run sysinit
     exec /system/bin/sysinit
 
-    setprop ro.build.product GT-I5700
-    setprop ro.product.device GT-I5700
+    setprop ro.build.product spica
+    setprop ro.product.device spica
     setprop ro.radio.use-ppp no
     #setprop ro.radio.noril yes
     #setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"

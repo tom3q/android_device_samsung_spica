@@ -55,32 +55,30 @@ BOARD_HAS_NO_MISC_PARTITION := true
 BOARD_USES_FFORMAT := true
 BOARD_RECOVERY_IGNORE_BOOTABLES := true
 
-USE_CAMERA_STUB := false
-BOARD_USE_FROYO_LIBCAMERA := true
-BOARD_CAMERA_USE_GETBUFFERINFO := true
+# Camera
+USE_CAMERA_STUB := true
 
-TARGET_USES_OLD_LIBSENSORS_HAL := true
-TARGET_SENSORS_NO_OPEN_CHECK := true
-
-TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/devices/platform/s3c6410-usbgadget/gadget/lun"
-BOARD_UMS_LUNFILE := "/sys/devices/platform/s3c6410-usbgadget/gadget/lun0/file"
-# use pre-kernel.35 vold usb mounting
-BOARD_USE_USB_MASS_STORAGE_SWITCH := true
-
+# Audio
 BOARD_USES_GENERIC_AUDIO := false
 BOARD_USES_LIBSECRIL_STUB := true
 
+# Connectivity - Wi-Fi
+WPA_SUPPLICANT_VERSION := VER_0_6_X
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
-WPA_SUPPLICANT_VERSION      := VER_0_5_X
-BOARD_WLAN_DEVICE           := eth0
-WIFI_DRIVER_MODULE_PATH     := "/lib/modules/dhd.ko"
-WIFI_DRIVER_FW_STA_PATH     := "/system/etc/rtecdc.bin"
-WIFI_DRIVER_FW_AP_PATH      := "/system/etc/rtecdc_apsta.bin"
-WIFI_DRIVER_MODULE_ARG      := "firmware_path=/system/etc/rtecdc.bin nvram_path=/system/etc/nvram.txt"
-WIFI_DRIVER_MODULE_NAME     := "dhd"
+BOARD_WLAN_DEVICE := bcmdhd
+WIFI_DRIVER_MODULE_PATH     := "/lib/modules/bcmdhd.ko"
+WIFI_DRIVER_FW_STA_PATH     := "/vendor/firmware/fw_bcm4325.bin"
+WIFI_DRIVER_FW_AP_PATH      := "/vendor/firmware/fw_bcm4325_apsta.bin"
+WIFI_DRIVER_MODULE_NAME     :=  "bcmdhd"
+WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/vendor/firmware/fw_bcm4325.bin nvram_path=/vendor/firmware/nvram_net.txt"
 
+# Bluetooth
 BOARD_HAVE_BLUETOOTH     := true
 BOARD_HAVE_BLUETOOTH_BCM := true
 
-BOARD_GPS_LIBRARIES := libsecgps libsecril-client
-BOARD_USES_GPSSHIM := true
+# GPS
+#BOARD_GPS_LIBRARIES := libsecgps libsecril-client
+#BOARD_USES_GPSSHIM := true
+
+# 3D
+BOARD_USES_HGL := true

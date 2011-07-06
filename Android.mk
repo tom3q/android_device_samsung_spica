@@ -14,7 +14,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(TARGET_DEVICE),GT-I5700)
+ifeq ($(TARGET_DEVICE),spica)
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := samsung-keypad.kcm

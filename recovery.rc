@@ -176,8 +176,8 @@ on boot
     domainname localdomain
 
 # set product name
-    setprop ro.build.product GT-I5700
-    setprop ro.product.device GT-I5700
+    setprop ro.build.product spica
+    setprop ro.product.device spica
 
 # set RLIMIT_NICE to allow priorities from 19 to -20
     setrlimit 13 40 40
