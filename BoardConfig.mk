@@ -12,55 +12,80 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# config.mk
+# BoardConfig.mk
 #
 # Product-specific compile-time definitions.
 #
 
-# WARNING: This line must come *before* including the proprietary
-# variant, so that it gets overwritten by the parent (which goes
-# against the traditional rules of inheritance).
-
-# inherit from the proprietary version
--include vendor/samsung/spica/BoardConfigVendor.mk
-
-TARGET_CPU_ABI := armeabi
-TARGET_ARCH_VARIANT := armv6-vfp
-TARGET_ARCH_VARIANT_CPU := arm1176jzf-s
-
-TARGET_PROVIDES_INIT := true
-TARGET_PROVIDES_INIT_TARGET_RC := true
-TARGET_BOOTLOADER_BOARD_NAME := GT-I5700
-TARGET_BOARD_PLATFORM := s3c6410
-TARGET_RECOVERY_INITRC := device/samsung/spica/recovery.rc
-BOARD_PROVIDES_BOOTMODE := true
-BOARD_USES_COMBINED_RECOVERY := true
-
-TARGET_NO_RECOVERY := false
-TARGET_NO_BOOTLOADER := true
-TARGET_NO_KERNEL := true
-TARGET_NO_RADIOIMAGE := true
-
-BOARD_CUSTOM_RECOVERY_KEYMAPPING:= ../../device/samsung/spica/recovery/recovery_ui.c
-
-BOARD_BOOTIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x00280000)
-BOARD_RECOVERYIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x00500000)
-BOARD_SYSTEMIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x07500000)
-BOARD_USERDATAIMAGE_MAX_SIZE := $(call image-size-from-data-size,0x04ac0000)
-# The size of a block that can be marked bad.
-BOARD_FLASH_BLOCK_SIZE := 131072
-
-BOARD_HAS_NO_SELECT_BUTTON := true
-BOARD_HAS_NO_MISC_PARTITION := true
-BOARD_USES_FFORMAT := true
-BOARD_RECOVERY_IGNORE_BOOTABLES := true
-
-# Camera
-USE_CAMERA_STUB := true
+# Set this up here so that BoardVendorConfig.mk can override it
 
 # Audio
 BOARD_USES_GENERIC_AUDIO := false
+
+# RIL
 BOARD_USES_LIBSECRIL_STUB := true
+
+# Use the non-open-source parts, if they're present
+-include vendor/samsung/spica/BoardConfigVendor.mk
+
+# Platform
+TARGET_BOARD_PLATFORM := s3c6410
+TARGET_BOOTLOADER_BOARD_NAME := spica
+TARGET_CPU_ABI := armeabi-v6l
+TARGET_CPU_ABI2 := armeabi
+TARGET_ARCH_VARIANT := armv6-vfp
+TARGET_ARCH_VARIANT_CPU := arm1176jzf-s
+
+# Package contents
+TARGET_NO_BOOTLOADER := true
+TARGET_NO_RADIOIMAGE := true
+TARGET_PREBUILT_KERNEL := device/samsung/spica/kernel.dummy
+
+# Init
+TARGET_PROVIDES_INIT := true
+TARGET_PROVIDES_INIT_TARGET_RC := true
+BOARD_PROVIDES_BOOTMODE := true
+
+# Recovery
+TARGET_RECOVERY_INITRC := device/samsung/spica/recovery.rc
+BOARD_USES_COMBINED_RECOVERY := true
+BOARD_CUSTOM_RECOVERY_KEYMAPPING:= ../../device/samsung/spica/recovery/recovery_ui.c
+
+# Mobile data
+BOARD_MOBILEDATA_INTERFACE_NAME = "pdp0"
+
+# Releasetools
+TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := ./device/samsung/spica/releasetools/spica_ota_from_target_files
+TARGET_RELEASETOOL_IMG_FROM_TARGET_SCRIPT := ./device/samsung/spica/releasetools/spica_img_from_target_files
+
+# Camera
+USE_CAMERA_STUB := true
+ifeq ($(USE_CAMERA_STUB),false)
+BOARD_CAMERA_LIBRARIES := libcamera
+endif
+
+# Bluetooth
+BOARD_HAVE_BLUETOOTH := true
+BOARD_HAVE_BLUETOOTH_BCM := true
+
+# Video Devices
+BOARD_USES_OVERLAY := true
+BOARD_CAMERA_DEVICE := /dev/video0
+
+# Partitions
+BOARD_BOOTIMAGE_PARTITION_SIZE := 0x00500000
+BOARD_SYSTEMIMAGE_PARTITION_SIZE := 0x08000000
+BOARD_USERDATAIMAGE_PARTITION_SIZE := 0x0e000000
+BOARD_FLASH_BLOCK_SIZE := 131072
+
+# Misc
+BOARD_HAS_NO_SELECT_BUTTON := true
+BOARD_HAS_NO_MISC_PARTITION := true
+WITH_JIT := true
+ENABLE_JSC_JIT := true
+JS_ENGINE := v8
+BUILD_WITH_FULL_STAGEFRIGHT := true
+TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
 
 # Connectivity - Wi-Fi
 WPA_SUPPLICANT_VERSION := VER_0_6_X
@@ -72,13 +97,13 @@ WIFI_DRIVER_FW_AP_PATH      := "/vendor/firmware/fw_bcm4325_apsta.bin"
 WIFI_DRIVER_MODULE_NAME     :=  "bcmdhd"
 WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/vendor/firmware/fw_bcm4325.bin nvram_path=/vendor/firmware/nvram_net.txt"
 
-# Bluetooth
-BOARD_HAVE_BLUETOOTH     := true
-BOARD_HAVE_BLUETOOTH_BCM := true
-
 # GPS
 #BOARD_GPS_LIBRARIES := libsecgps libsecril-client
 #BOARD_USES_GPSSHIM := true
 
 # 3D
+BOARD_NO_RGBX_8888 := true
 BOARD_USES_HGL := true
+BOARD_EGL_CFG := device/samsung/spica/egl.cfg
+BOARD_NO_PAGE_FLIPPING := false
+BOARD_NO_32BPP := false
