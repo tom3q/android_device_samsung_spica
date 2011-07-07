@@ -48,7 +48,6 @@ BOARD_PROVIDES_BOOTMODE := true
 
 # Recovery
 TARGET_RECOVERY_INITRC := device/samsung/spica/recovery.rc
-BOARD_USES_COMBINED_RECOVERY := true
 BOARD_CUSTOM_RECOVERY_KEYMAPPING:= ../../device/samsung/spica/recovery/recovery_ui.c
 
 # Mobile data

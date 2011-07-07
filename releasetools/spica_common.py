@@ -29,3 +29,17 @@ def load_module_from_file(module_name, filename):
     module = imp.load_module(module_name, f, filename, ('', 'U', 1))
     f.close()
     return module
+
+# map recovery.fstab's fs_types to mount/format "partition types"
+PARTITION_TYPES = { "yaffs2": "MTD", "mtd": "MTD",
+                    "ext2": "EMMC", "ext3": "EMMC",
+                    "ext4": "EMMC", "vfat": "EMMC",
+                    "emmc": "EMMC", "bml" : "BML",
+                    "ubifs" : "UBI" }
+
+def GetTypeAndDevice(mount_point, info):
+  fstab = info["fstab"]
+  if fstab:
+    return PARTITION_TYPES[fstab[mount_point].fs_type], fstab[mount_point].device
+  else:
+    return None
