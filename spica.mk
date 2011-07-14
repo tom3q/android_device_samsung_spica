@@ -76,12 +76,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libs3cjpeg \
     libcamera \
-    copybit.spica \
-    gralloc.spica \
+    copybit.s3c6410 \
+    gralloc.s3c6410 \
     libsecgps \
     libsecril-client \
-    libGLES_fimg \
-    libfimg
+    libGLES_fimg
 
 # These are the hardware-specific features
 PRODUCT_COPY_FILES += \
