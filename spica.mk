@@ -109,7 +109,6 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/wifi/rtecdc_mfg.bin:system/etc/rtecdc_mfg.bin \
     device/samsung/spica/prebuilt/wifi/bcm_supp.conf:system/etc/bcm_supp.conf \
     device/samsung/spica/prebuilt/wifi/wifi.conf:system/etc/wifi.conf \
-    device/samsung/spica/prebuilt/wifi/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
     device/samsung/spica/prebuilt/wifi/dhcpcd.conf:system/etc/dhcpcd/dhcpcd.conf \
     device/samsung/spica/prebuilt/wifi/wlservice:system/bin/wlservice
 
