@@ -69,7 +69,7 @@ PRODUCT_PACKAGES := \
 PRODUCT_PACKAGES += \
     lights.spica \
     #overlay.spica \
-    gps.spica \
+    #gps.spica \
     sensors.spica
 
 # Libs
@@ -100,17 +100,10 @@ PRODUCT_COPY_FILES += \
 
 # Wifi
 PRODUCT_COPY_FILES += \
-    device/samsung/spica/prebuilt/wifi/libwlmlogger.so:system/lib/libwlmlogger.so \
-    device/samsung/spica/prebuilt/wifi/libwlservice.so:system/lib/libwlservice.so \
     device/samsung/spica/prebuilt/wifi/nvram.txt:system/etc/nvram.txt \
     device/samsung/spica/prebuilt/wifi/rtecdc.bin:system/etc/rtecdc.bin \
     device/samsung/spica/prebuilt/wifi/rtecdc_apsta.bin:system/etc/rtecdc_apsta.bin \
-    device/samsung/spica/prebuilt/wifi/nvram_mfg.txt:system/etc/nvram_mfg.txt \
-    device/samsung/spica/prebuilt/wifi/rtecdc_mfg.bin:system/etc/rtecdc_mfg.bin \
-    device/samsung/spica/prebuilt/wifi/bcm_supp.conf:system/etc/bcm_supp.conf \
-    device/samsung/spica/prebuilt/wifi/wifi.conf:system/etc/wifi.conf \
-    device/samsung/spica/prebuilt/wifi/dhcpcd.conf:system/etc/dhcpcd/dhcpcd.conf \
-    device/samsung/spica/prebuilt/wifi/wlservice:system/bin/wlservice
+    device/samsung/spica/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf
 
 # RIL
 PRODUCT_COPY_FILES += \

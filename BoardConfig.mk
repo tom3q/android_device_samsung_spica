@@ -89,7 +89,7 @@ TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
 # Connectivity - Wi-Fi
 WPA_SUPPLICANT_VERSION := VER_0_6_X
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
-BOARD_WLAN_DEVICE := eth0
+BOARD_WLAN_DEVICE := bcm4329
 WIFI_DRIVER_MODULE_PATH     := "/lib/modules/bcm4329.ko"
 WIFI_DRIVER_FW_STA_PATH     := "/system/etc/rtecdc.bin"
 WIFI_DRIVER_FW_AP_PATH      := "/system/etc/rtecdc_apsta.bin"
