@@ -124,7 +124,7 @@ PRODUCT_COPY_FILES += \
 
 # Bluetooth
 PRODUCT_COPY_FILES += \
-    device/samsung/spica/prebuilt/bt/BCM4325D1_004.002.004.0153.0173.hcd:system/bin/BCM4325D1_004.002.004.0153.0173.hcd
+    device/samsung/spica/prebuilt/bt/bcm4325.hcd:system/etc/bcm4325.hcd
 
 # Used by BusyBox
 KERNEL_MODULES_DIR:=/lib/modules

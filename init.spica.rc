@@ -194,7 +194,7 @@ service iprenew_eth0 /system/bin/dhcpcd -n
     oneshot
 
 service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
-    --baudrate 2764800 --patchram /system/etc/bcm4325.hcd /dev/ttySAC1
+    --baudrate 3000000 --patchram /system/etc/bcm4325.hcd /dev/ttySAC1
     user bluetooth
     group bluetooth net_bt_admin
     disabled
