@@ -38,10 +38,10 @@
 # These is the hardware-specific overlay, which points to the location
 # of hardware-specific resource overrides, typically the frameworks and
 # application settings that are stored in resourced.
-DEVICE_PACKAGE_OVERLAYS += device/samsung/spica/overlay
+DEVICE_PACKAGE_OVERLAYS := device/samsung/spica/overlay
 
 # These are the hardware-specific configuration files
-PRODUCT_COPY_FILES += \
+PRODUCT_COPY_FILES := \
     device/samsung/spica/egl.cfg:system/lib/egl/egl.cfg \
     device/samsung/spica/vold.fstab:system/etc/vold.fstab \
     device/samsung/spica/asound.conf:system/etc/asound.conf \
