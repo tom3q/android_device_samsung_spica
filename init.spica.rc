@@ -66,9 +66,9 @@ on fs
 # permissions for bluetooth.
 #    chown bluetooth bluetooth /efs/bluetooth
 #    chown bluetooth bluetooth ro.bt.bdaddr_path
-#    chmod 0660 /sys/class/rfkill/rfkill0/state
-#    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
-#    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chmod 0660 /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
 
 # Permissions for System Server and daemons.
     chown system system /sys/class/backlight/s6d05a-lcd/brightness
@@ -194,7 +194,7 @@ service iprenew_eth0 /system/bin/dhcpcd -n
     oneshot
 
 service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
-    --baudrate 3000000 --patchram /vendor/firmware/bcm4329.hcd /dev/s3c2410_serial0
+    --baudrate 2764800 --patchram /system/etc/bcm4325.hcd /dev/ttySAC1
     user bluetooth
     group bluetooth net_bt_admin
     disabled
