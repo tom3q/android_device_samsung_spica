@@ -10,12 +10,11 @@
 /dev/pmem_gpu1            0666   system     graphics
 
 # for GSM radio
-/dev/modem_ctl            0660   radio      radio
-/dev/modem_fmt            0660   radio      radio
-/dev/modem_rfs            0660   radio      radio
+/dev/dpram0               0660   radio      radio
+/dev/dpram1               0660   radio      radio
+/dev/dpramerr             0660   radio      radio
+/dev/multipdp             0660   radio      radio
 /dev/ttySAC0              0660   radio      radio
-/dev/block/mtdblock10     0660   radio      radio
-/dev/mtd/mtd10ro          0660   radio      radio
 
 # for Sensor HAL
 /dev/akm8973              0660   system     system

@@ -22,9 +22,6 @@
 # Audio
 BOARD_USES_GENERIC_AUDIO := false
 
-# RIL
-BOARD_USES_LIBSECRIL_STUB := true
-
 # Use the non-open-source parts, if they're present
 -include vendor/samsung/spica/BoardConfigVendor.mk
 
@@ -97,8 +94,8 @@ WIFI_DRIVER_MODULE_NAME     :=  "bcm4329"
 WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/system/etc/rtecdc.bin nvram_path=/system/etc/nvram.txt"
 
 # GPS
-#BOARD_GPS_LIBRARIES := libsecgps libsecril-client
-#BOARD_USES_GPSSHIM := true
+BOARD_GPS_LIBRARIES := libsecgps libsecril-client
+BOARD_USES_GPSSHIM := true
 
 # 3D
 BOARD_NO_RGBX_8888 := true

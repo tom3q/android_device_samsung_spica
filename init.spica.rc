@@ -77,6 +77,8 @@ on post-fs
     # load modules
     insmod /lib/modules/s3c_g2d.ko
     insmod /lib/modules/s3c_g3d.ko
+    insmod /lib/modules/dpram.ko
+    insmod /lib/modules/multipdp.ko
 
     # remove /sbin/sh so that "adb install" can work properly
     exec /sbin/setupenv.sh
@@ -221,11 +223,11 @@ service netd /system/bin/netd
 
 service debuggerd /system/bin/debuggerd
 
-#service ril-daemon /system/bin/rild
-#    socket rild stream 660 root radio
-#    socket rild-debug stream 660 radio system
-#    user root
-#    group radio cache inet misc audio sdcard_rw net_admin net_raw
+service ril-daemon /system/bin/rild
+    socket rild stream 660 root radio
+    socket rild-debug stream 660 radio system
+    user root
+    group radio cache inet misc audio sdcard_rw net_admin net_raw
 
 service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-system-server
     socket zygote stream 666
