@@ -93,6 +93,11 @@ loglevel 3
     write /dev/cpuctl/bg_non_interactive/cpu.shares 52
 
 on fs
+# attach ubi devices
+    ubiattach mtd@system 0
+    ubiattach mtd@data 1
+    ubiattach mtd@cache 2
+
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
     mount ubifs /dev/ubi0_0 /system
