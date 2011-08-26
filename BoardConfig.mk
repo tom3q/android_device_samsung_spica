@@ -87,11 +87,10 @@ TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
 WPA_SUPPLICANT_VERSION := VER_0_6_X
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 BOARD_WLAN_DEVICE := bcm4329
-WIFI_DRIVER_MODULE_PATH     := "/lib/modules/bcm4329.ko"
-WIFI_DRIVER_FW_STA_PATH     := "/system/etc/rtecdc.bin"
-WIFI_DRIVER_FW_AP_PATH      := "/system/etc/rtecdc_apsta.bin"
-WIFI_DRIVER_MODULE_NAME     :=  "bcm4329"
-WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/system/etc/rtecdc.bin nvram_path=/system/etc/nvram.txt"
+WIFI_DRIVER_MODULE_PATH     := "/lib/modules/bcmdhd.ko"
+WIFI_DRIVER_FW_STA_PATH     := "/system/etc/fw_bcm4325.bin"
+WIFI_DRIVER_MODULE_NAME     :=  "bcmdhd"
+WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/system/etc/fw_bcm4325.bin nvram_path=/system/etc/nvram.txt"
 
 # GPS
 BOARD_GPS_LIBRARIES := libsecgps libsecril-client

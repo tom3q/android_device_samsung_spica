@@ -101,8 +101,7 @@ PRODUCT_COPY_FILES += \
 # Wifi
 PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/wifi/nvram.txt:system/etc/nvram.txt \
-    device/samsung/spica/prebuilt/wifi/rtecdc.bin:system/etc/rtecdc.bin \
-    device/samsung/spica/prebuilt/wifi/rtecdc_apsta.bin:system/etc/rtecdc_apsta.bin \
+    device/samsung/spica/prebuilt/wifi/rtecdc.bin:system/etc/fw_bcm4325.bin \
     device/samsung/spica/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf
 
 # RIL
@@ -141,10 +140,10 @@ PRODUCT_PROPERTY_OVERRIDES := \
 # Note that the only such settings should be the ones that are too low-level to
 # be reachable from resources or other mechanisms.
 PRODUCT_PROPERTY_OVERRIDES += \
-       wifi.interface=eth0 \
+       wifi.interface=wlan0 \
        wifi.supplicant_scan_interval=20 \
        ro.telephony.ril_class=samsung \
-       mobiledata.interfaces=pdp0,eth0,gprs,ppp0 \
+       mobiledata.interfaces=pdp0,wlan0,gprs,ppp0 \
        dalvik.vm.heapsize=32m \
        dalvik.vm.dexopt-data-only=1 \
 
