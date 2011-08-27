@@ -97,6 +97,7 @@ on fs
     ubiattach mtd@system 0
     ubiattach mtd@data 1
     ubiattach mtd@cache 2
+    ubiattach mtd@efs 3
 
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint

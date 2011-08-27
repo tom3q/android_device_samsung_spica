@@ -15,8 +15,6 @@ on boot
     setprop ro.build.product spica
     setprop ro.product.device spica
     setprop ro.radio.use-ppp no
-    #setprop ro.radio.noril yes
-    #setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"
 
 # fake some battery state
     setprop status.battery.state Slow
@@ -57,11 +55,12 @@ on fs
     mount ubifs /dev/ubi2_0 /cache rw
 
 # We chown/chmod /efs because mount is run as root + defaults
-#    mkdir /efs 0775 radio radio
-#    mount yaffs2 /dev/block/mtdblock4 /efs
-#    chown radio radio /efs
-#    chmod 770 /efs/bluetooth
-#    chmod 770 /efs/imei
+    mkdir /efs 0775 radio radio
+    mount ubifs /dev/ubi3_0 /efs rw
+    chown radio radio /efs
+    chmod 775 /efs
+    chmod 770 /efs/bluetooth
+    chmod 770 /efs/imei
 
 # permissions for bluetooth.
 #    chown bluetooth bluetooth /efs/bluetooth
@@ -222,6 +221,8 @@ service netd /system/bin/netd
     socket netd stream 0660 root system
 
 service debuggerd /system/bin/debuggerd
+
+service efs-daemon /system/bin/efsd
 
 service ril-daemon /system/bin/rild
     socket rild stream 660 root radio
