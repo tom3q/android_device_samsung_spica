@@ -97,8 +97,4 @@ BOARD_GPS_LIBRARIES := libsecgps libsecril-client
 BOARD_USES_GPSSHIM := true
 
 # 3D
-BOARD_NO_RGBX_8888 := true
-BOARD_USES_HGL := true
 BOARD_EGL_CFG := device/samsung/spica/egl.cfg
-BOARD_NO_PAGE_FLIPPING := false
-BOARD_NO_32BPP := false
