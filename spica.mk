@@ -78,8 +78,8 @@ PRODUCT_PACKAGES += \
     libcamera \
     copybit.s3c6410 \
     gralloc.s3c6410 \
-    libsecgps \
-    libsecril-client \
+    libsecgps.so \
+    libsecril-client.so \
     libGLES_fimg
 
 # These are the hardware-specific features
