@@ -101,7 +101,7 @@ PRODUCT_COPY_FILES += \
 # Wifi
 PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/wifi/nvram.txt:system/etc/nvram.txt \
-    device/samsung/spica/prebuilt/wifi/rtecdc.bin:system/etc/fw_bcm4325.bin \
+    device/samsung/spica/prebuilt/wifi/fw_bcm4325.bin:system/etc/fw_bcm4325.bin \
     device/samsung/spica/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf
 
 # RIL
