@@ -10,8 +10,7 @@
 /dev/pmem_gpu1            0666   system     graphics
 
 # for GSM radio
-/dev/dpram0               0660   radio      radio
-/dev/dpram1               0660   radio      radio
+/dev/dpram                0660   radio      radio
 /dev/dpramerr             0660   radio      radio
 /dev/multipdp             0660   radio      radio
 /dev/block/mtdblock10     0660   radio      radio

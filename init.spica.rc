@@ -77,7 +77,6 @@ on post-fs
     insmod /lib/modules/s3c_g2d.ko
     insmod /lib/modules/s3c_g3d.ko
     insmod /lib/modules/dpram.ko
-    insmod /lib/modules/multipdp.ko
 
     # remove /sbin/sh so that "adb install" can work properly
     exec /sbin/setupenv.sh
