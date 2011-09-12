@@ -197,6 +197,14 @@ service iprenew_wlan0 /system/bin/dhcpcd -n
     disabled
     oneshot
 
+service bdaddr /system/bin/bdaddr_read
+    user root
+    disabled
+    oneshot
+
+on property:init.svc.bootanim=running
+    start bdaddr
+
 service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
     --baudrate 3000000 --patchram /system/etc/bcm4325.hcd /dev/ttySAC1
     user bluetooth

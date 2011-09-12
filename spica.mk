@@ -76,6 +76,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libs3cjpeg \
     libcamera \
+    bdaddr_read \
     show_logo \
     copybit.s3c6410 \
     gralloc.s3c6410 \
