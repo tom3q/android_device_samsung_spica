@@ -76,6 +76,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libs3cjpeg \
     libcamera \
+    show_logo \
     copybit.s3c6410 \
     gralloc.s3c6410 \
     libsecgps.so \
@@ -124,6 +125,10 @@ PRODUCT_COPY_FILES += \
 # Bluetooth
 PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/bt/bcm4325.hcd:system/etc/bcm4325.hcd
+
+# Boot logo
+PRODUCT_COPY_FILE += \
+    device/samsung/spica/bootlogo.png:system/etc/bootlogo.png
 
 # Used by BusyBox
 KERNEL_MODULES_DIR:=/lib/modules

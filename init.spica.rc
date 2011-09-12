@@ -54,6 +54,9 @@ on fs
     # /cache
     mount ubifs /dev/ubi2_0 /cache rw
 
+# Show boot logo as early as possible
+    exec /system/bin/show_logo
+
 # We chown/chmod /efs because mount is run as root + defaults
     mkdir /efs 0775 radio radio
     mount ubifs /dev/ubi3_0 /efs rw
