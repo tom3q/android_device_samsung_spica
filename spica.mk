@@ -149,7 +149,6 @@ PRODUCT_PROPERTY_OVERRIDES := \
 PRODUCT_PROPERTY_OVERRIDES += \
        wifi.interface=wlan0 \
        wifi.supplicant_scan_interval=20 \
-       ro.telephony.ril_class=samsung \
        mobiledata.interfaces=pdp0,wlan0,gprs,ppp0 \
        dalvik.vm.heapsize=32m \
        dalvik.vm.dexopt-data-only=1 \
