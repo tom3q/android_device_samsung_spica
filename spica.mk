@@ -129,7 +129,7 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/bt/bcm4325.hcd:system/etc/bcm4325.hcd
 
 # Boot logo
-PRODUCT_COPY_FILE += \
+PRODUCT_COPY_FILES += \
     device/samsung/spica/bootlogo.png:system/etc/bootlogo.png
 
 # Used by BusyBox
