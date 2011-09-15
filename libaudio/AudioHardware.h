@@ -26,8 +26,6 @@
 #include <hardware_legacy/AudioHardwareBase.h>
 #include <media/mediarecorder.h>
 
-#include "secril-client.h"
-
 extern "C" {
     struct pcm;
     struct mixer;
