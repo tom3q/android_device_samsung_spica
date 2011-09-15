@@ -70,7 +70,7 @@ PRODUCT_PACKAGES := \
 PRODUCT_PACKAGES += \
     lights.spica \
     #overlay.spica \
-    #gps.spica \
+    gps.spica \
     sensors.spica
 
 # Libs
