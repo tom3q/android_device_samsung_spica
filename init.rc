@@ -38,7 +38,6 @@ loglevel 3
     mkdir /acct/uid
 
     mkdir /data 0771 system system
-    mkdir /cache 0771 system cache
     mkdir /config 0500 root root
     mkdir /xbin
 

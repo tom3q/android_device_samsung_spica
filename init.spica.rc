@@ -51,9 +51,6 @@ on fs
     # /data
     mount ubifs /dev/ubi1_0 /data rw
 
-    # /cache
-    mount ubifs /dev/ubi2_0 /cache rw
-
 # Show boot logo as early as possible
     exec /system/bin/show_logo
 
@@ -108,9 +105,12 @@ on post-fs
     write /proc/apanic_console 1
 
     # Same reason as /data above
+    mkdir /data/cache
+    chown system cache /data/cache
+    chmod 0771 /data/cache
+    symlink /data/cache /cache
     chown system cache /cache
     chmod 0771 /cache
-    symlink /data/download /cache/download
 
     # This may have been created by the recovery system with odd permissions
     chown system cache /cache/recovery
