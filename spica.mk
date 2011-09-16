@@ -44,7 +44,6 @@ DEVICE_PACKAGE_OVERLAYS := device/samsung/spica/overlay
 PRODUCT_COPY_FILES := \
     device/samsung/spica/egl.cfg:system/lib/egl/egl.cfg \
     device/samsung/spica/vold.fstab:system/etc/vold.fstab \
-    device/samsung/spica/asound.conf:system/etc/asound.conf \
     device/common/gps/gps.conf_EU_SUPL:system/etc/gps.conf \
     device/samsung/spica/media_profiles.xml:system/etc/media_profiles.xml
 
