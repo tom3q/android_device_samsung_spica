@@ -167,18 +167,21 @@ static const AudioHardware::AudioRouteConfig outputRouteConfigs[] = {
 };
 
 static const AudioHardware::AudioPinConfig voiceInMicMainPinConfigs[] = {
+    { "Main Mic Switch", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "LOUT3 Mixer LINS1", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "ROUT3 Mixer RINS1", AudioHardware::TYPE_BOOL, NULL, 1 },
     AUDIO_PIN_CONFIG_TERMINATOR,
 };
 
 static const AudioHardware::AudioPinConfig voiceInMicSubPinConfigs[] = {
+    { "Sub Mic Switch", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "LOUT3 Mixer LINS2", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "ROUT3 Mixer RINS2", AudioHardware::TYPE_BOOL, NULL, 1 },
     AUDIO_PIN_CONFIG_TERMINATOR,
 };
 
 static const AudioHardware::AudioPinConfig voiceInHeadsetPinConfigs[] = {
+    { "Jack Mic Switch", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "LOUT3 Mixer LINS3", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "ROUT3 Mixer RINS3", AudioHardware::TYPE_BOOL, NULL, 1 },
     AUDIO_PIN_CONFIG_TERMINATOR,
