@@ -65,15 +65,10 @@ PRODUCT_PACKAGES := \
     samsung-keypad.kcm \
     gpio-keys.kcm
 
-# Misc other modules
-PRODUCT_PACKAGES += \
-    lights.spica \
-    #overlay.spica \
-    gps.spica \
-    sensors.spica
-
 # Libs
 PRODUCT_PACKAGES += \
+    lights.spica \
+    gps.spica \
     libs3cjpeg \
     libcamera \
     bdaddr_read \
