@@ -57,7 +57,7 @@ PRODUCT_COPY_FILES += \
 # Prebuilt kl keymaps
 PRODUCT_COPY_FILES += \
     device/samsung/spica/samsung-keypad.kl:system/usr/keylayout/samsung-keypad.kl \
-    device/samsung/spica/sec_jack.kl:system/usr/keylayout/sec_jack.kl
+    device/samsung/spica/sec_jack.kl:system/usr/keylayout/sec_jack.kl \
     device/samsung/spica/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
 
 # Generated kcm keymaps
