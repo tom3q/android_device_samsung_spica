@@ -170,8 +170,10 @@ on post-fs
     chmod 0775 /dev/socket
 
     #symlinks for samsung RIL
-    symlink /radio/modem.bin /dev/block/mtdblock10
-
+    mkdir /radio 0775 radio radio
+    symlink /dev/block/bml10 /radio/modem.bin
+    chown radio radio /radio/modem.bin
+    chmod 0664 /radio/modem.bin
 
 # allow system to modify cpufreq control files
     chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
