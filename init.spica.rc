@@ -56,7 +56,7 @@ on fs
 
 # We chown/chmod /efs because mount is run as root + defaults
     mkdir /efs 0775 radio radio
-    mount ubifs /dev/ubi3_0 /efs rw
+    mount ubifs /dev/ubi3_0 /efs rw sync
     chown radio radio /efs
     chmod 775 /efs
     chmod 770 /efs/bluetooth
