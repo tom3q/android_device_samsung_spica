@@ -82,6 +82,8 @@ ENABLE_JSC_JIT := true
 JS_ENGINE := v8
 BUILD_WITH_FULL_STAGEFRIGHT := true
 TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
+TARGET_PROVIDES_LIBAUDIO := true
+TARGET_PROVIDES_LIBRIL := true
 
 # Connectivity - Wi-Fi
 WPA_SUPPLICANT_VERSION := VER_0_6_X
@@ -98,3 +100,6 @@ BOARD_USES_GPSSHIM := true
 
 # 3D
 BOARD_EGL_CFG := device/samsung/spica/egl.cfg
+
+# Prelinker
+PRODUCT_SPECIFIC_DEFINES += TARGET_PRELINKER_MAP=\$(TOP)/device/samsung/spica/prelink-linux-arm-spica.map

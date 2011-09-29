@@ -17,10 +17,11 @@
 /dev/ttySAC0              0660   radio      radio
 /dev/ttyCSD0              0660   radio      radio
 /dev/ttySMD0              0660   radio      radio
+/dev/ttyEFS0              0660   radio      radio
 
 # for GPS
-/dev/ttyGPS0              0660   gps        gps
-/dev/ttyXTRA0             0660   gps        gps
+/dev/ttyGPS0              0666   gps        gps
+/dev/ttyXTRA0             0666   gps        gps
 
 # for Sensor HAL
 /dev/akm8973              0660   system     system

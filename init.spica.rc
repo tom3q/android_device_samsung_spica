@@ -237,6 +237,8 @@ service netd /system/bin/netd
 service debuggerd /system/bin/debuggerd
 
 service efs-daemon /system/bin/efsd
+    user root
+    group radio cache inet misc audio sdcard_rw net_admin net_raw
 
 service ril-daemon /system/bin/rild
     socket rild stream 660 root radio

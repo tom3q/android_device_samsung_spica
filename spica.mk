@@ -76,7 +76,9 @@ PRODUCT_PACKAGES += \
     copybit.s3c6410 \
     gralloc.s3c6410 \
     libsecgps.so \
+    libsec-ril.so \
     libsecril-client.so \
+    efsd \
     libGLES_fimg
 
 # These are the hardware-specific features
@@ -100,14 +102,6 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/wifi/nvram.txt:system/etc/nvram.txt \
     device/samsung/spica/prebuilt/wifi/fw_bcm4325.bin:system/etc/fw_bcm4325.bin \
     device/samsung/spica/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf
-
-# RIL
-PRODUCT_COPY_FILES += \
-    device/samsung/spica/prebuilt/ril/drexe:system/bin/drexe \
-    device/samsung/spica/prebuilt/ril/efsd:system/bin/efsd \
-    device/samsung/spica/prebuilt/ril/rilclient-test:system/bin/rilclient-test \
-    device/samsung/spica/prebuilt/ril/libsec-ril.so:system/lib/libsec-ril.so \
-    device/samsung/spica/prebuilt/ril/rild:system/bin/rild
 
 # SamdroidTools
 PRODUCT_COPY_FILES += \
