@@ -39,11 +39,6 @@ loglevel 3
 
     mkdir /data 0771 system system
     mkdir /config 0500 root root
-    mkdir /xbin
-
-    # Create a link to have a working recovery system
-    # even in case /system fails to mount
-    symlink /xbin /system/bin
 
     # Directory for putting things only root should see.
     mkdir /mnt/secure 0700 root root
@@ -101,9 +96,6 @@ on fs
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
     mount ubifs /dev/ubi0_0 /system
-
-    # /xbin
-    mount squashfs /dev/block/mtdblock7 /xbin ro loop
 
 on boot
 # basic network init
