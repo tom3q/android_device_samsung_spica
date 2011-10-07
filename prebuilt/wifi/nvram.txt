@@ -23,6 +23,6 @@ ccode=EU
 cctl=0x0
 boardnum=803
 sd_gpout=0
-sd_gpval=1
+sd_gpval=0
 sd_gpdc=0
 sd_oobonly=1
