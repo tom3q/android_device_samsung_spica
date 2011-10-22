@@ -103,11 +103,6 @@ PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/wifi/fw_bcm4325.bin:system/etc/fw_bcm4325.bin \
     device/samsung/spica/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf
 
-# SamdroidTools
-PRODUCT_COPY_FILES += \
-    device/samsung/spica/prebuilt/samdroidtools/SamdroidTools.apk:system/app/SamdroidTools.apk \
-    device/samsung/spica/prebuilt/samdroidtools/libsamdroidtools.so:system/lib/libsamdroidtools.so
-
 # serviceModeApp
 PRODUCT_COPY_FILES += \
     device/samsung/spica/prebuilt/servicemodeapp/serviceModeApp.apk:system/app/serviceModeApp.apk
