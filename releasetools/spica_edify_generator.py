@@ -97,3 +97,15 @@ class EdifyGenerator(edify_generator.EdifyGenerator):
       else:
         raise ValueError("don't know how to write \"%s\" partitions" %
                          (self.info["partition_type"],))
+
+  def WriteImageToDevice(self, dev, image):
+    """Write the given package file into the given partition."""
+
+    args = {'dev': dev, 'image': image}
+
+    self.script.append(
+            ('package_extract_file("write.sh", "/tmp/write.sh");\n'
+            'set_perm(0, 0, 0777, "/tmp/write.sh");\n'
+            'package_extract_file("%(image)s", "/tmp/%(image)s");\n'
+            'run_program("/tmp/write.sh", "%(dev)s", "/tmp/%(image)s");') % args)
+

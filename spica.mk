@@ -157,8 +157,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # PRODUCT_LOCALES expansion must not be a density.
 PRODUCT_LOCALES := mdpi
 
-# Kernel (just a dummy to allow building otapackages)
-LOCAL_KERNEL := device/samsung/spica/kernel.dummy
+# Kernel
+LOCAL_KERNEL := device/samsung/spica/kernel.bin
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 

@@ -36,7 +36,7 @@ TARGET_ARCH_VARIANT_CPU := arm1176jzf-s
 # Package contents
 TARGET_NO_BOOTLOADER := true
 TARGET_NO_RADIOIMAGE := true
-TARGET_PREBUILT_KERNEL := device/samsung/spica/kernel.dummy
+TARGET_PREBUILT_KERNEL := device/samsung/spica/kernel.bin
 
 # Init
 TARGET_PROVIDES_INIT := true
