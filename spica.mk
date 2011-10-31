@@ -65,6 +65,10 @@ PRODUCT_PACKAGES := \
     samsung-keypad.kcm \
     gpio-keys.kcm
 
+# Input device calibration files
+PRODUCT_COPY_FILES += \
+    device/samsung/spica/qt5480_ts_input.idc:system/usr/idc/qt5480_ts_input.idc
+
 # Libs
 PRODUCT_PACKAGES += \
     lights.spica \
