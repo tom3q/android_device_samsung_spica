@@ -549,7 +549,7 @@ status_t AudioHardware::setMode(int mode)
             }
             mInCallAudioMode = true;
         }
-        if (mMode == AudioSystem::MODE_NORMAL && mInCallAudioMode) {
+        if (mMode != AudioSystem::MODE_IN_CALL && mInCallAudioMode) {
             struct mixer_ctl *ctl;
             if (mMixer != NULL) {
                 setAudioRoute(ROUTE_VOICE_OUT, 0);
