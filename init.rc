@@ -148,7 +148,7 @@ on boot
     write /proc/sys/vm/dirty_background_ratio  5
 
     # Disable FUA for mass storage to allow write caching
-    write /sys/devices/platform/usb_mass_storage/lun0 1
+    write /sys/devices/platform/usb_mass_storage/lun0/nofua 1
 
     # Permissions for System Server and daemons.
     chown radio system /sys/android_power/state
