@@ -185,7 +185,8 @@ on post-fs
 
 # configure conservative cpufreq governor
     write /sys/devices/system/cpu/cpufreq/conservative/sampling_rate 200000
-    write /sys/devices/system/cpu/cpufreq/conservative/sampling_down_factor 2
+    write /sys/devices/system/cpu/cpufreq/conservative/sampling_down_factor 3
+    write /sys/devices/system/cpu/cpufreq/conservative/freq_step 17
 
 service wpa_supplicant /system/bin/wpa_supplicant -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf
     socket wpa_wlan0 dgram 0660 wifi wifi
