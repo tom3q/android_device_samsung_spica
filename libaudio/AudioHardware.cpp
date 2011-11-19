@@ -478,6 +478,10 @@ status_t AudioHardware::setMode(int mode)
     sp<AudioStreamInALSA> spIn;
     status_t status;
 
+    // bump thread priority to speed up mutex acquisition
+    int  priority = getpriority(PRIO_PROCESS, 0);
+    setpriority(PRIO_PROCESS, 0, ANDROID_PRIORITY_URGENT_AUDIO);
+
     // Mutex acquisition order is always out -> in -> hw
     AutoMutex lock(mLock);
 
@@ -500,6 +504,8 @@ status_t AudioHardware::setMode(int mode)
         }
     }
     // spOut is not 0 here only if the output is active
+
+    setpriority(PRIO_PROCESS, 0, priority);
 
     spIn = getActiveInput_l();
     while (spIn != 0) {
@@ -1111,6 +1117,10 @@ ssize_t AudioHardware::AudioStreamOutALSA::write(const void* buffer, size_t byte
         usleep(10000);
     }
 
+    // bump thread priority to speed up mutex acquisition
+    int  priority = getpriority(PRIO_PROCESS, 0);
+    setpriority(PRIO_PROCESS, 0, ANDROID_PRIORITY_URGENT_AUDIO);
+
     { // scope for the lock
 
         AutoMutex lock(mLock);
@@ -1163,13 +1173,16 @@ ssize_t AudioHardware::AudioStreamOutALSA::write(const void* buffer, size_t byte
         TRACE_DRIVER_OUT
 
         if (ret == 0) {
+            setpriority(PRIO_PROCESS, 0, priority);
             return bytes;
         }
         LOGW("write error: %d", errno);
         status = -errno;
     }
-Error:
 
+    setpriority(PRIO_PROCESS, 0, priority);
+
+Error:
     standby();
 
     // Simulate audio output timing in case of error
@@ -1471,6 +1484,10 @@ ssize_t AudioHardware::AudioStreamInALSA::read(void* buffer, ssize_t bytes)
         usleep(10000);
     }
 
+    // bump thread priority to speed up mutex acquisition
+    int  priority = getpriority(PRIO_PROCESS, 0);
+    setpriority(PRIO_PROCESS, 0, ANDROID_PRIORITY_URGENT_AUDIO);
+
     { // scope for the lock
         AutoMutex lock(mLock);
 
@@ -1557,6 +1574,7 @@ ssize_t AudioHardware::AudioStreamInALSA::read(void* buffer, ssize_t bytes)
         }
 
         if (ret == 0) {
+            setpriority(PRIO_PROCESS, 0, priority);
             return bytes;
         }
 
@@ -1564,8 +1582,9 @@ ssize_t AudioHardware::AudioStreamInALSA::read(void* buffer, ssize_t bytes)
         status = ret;
     }
 
-Error:
+    setpriority(PRIO_PROCESS, 0, priority);
 
+Error:
     standby();
 
     // Simulate audio output timing in case of error
