@@ -2215,8 +2215,8 @@ AudioHardware::ChannelMixer::ChannelMixer(uint32_t outChannelCount,
     :  mStatus(NO_INIT), mProvider(provider), mOutChannelCount(outChannelCount),
        mChannelCount(channelCount)
 {
-    LOGV("AudioHardware::DownSampler() cstor %p SR %d channels %d frames %d",
-         this, mSampleRate, mChannelCount, mFrameCount);
+    LOGV("AudioHardware::DownSampler() cstor %p channels %d frames %d",
+         this, mChannelCount, frameCount);
 
     if (outChannelCount != 1 || channelCount != 2) {
         LOGE("AudioHardware::ChannelMixer cstor: bad conversion: %d => %d",
