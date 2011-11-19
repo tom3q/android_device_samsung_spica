@@ -1384,7 +1384,8 @@ AudioHardware::AudioStreamInALSA::AudioStreamInALSA() :
     mHardware(0), mPcm(0), mMixer(0),
     mStandby(true), mDevices(0), mChannels(AUDIO_HW_IN_CHANNELS), mChannelCount(2),
     mSampleRate(AUDIO_HW_IN_SAMPLERATE), mBufferSize(AUDIO_HW_IN_PERIOD_BYTES),
-    mDownSampler(NULL), mChannelMixer(NULL), mReadStatus(NO_ERROR), mDriverOp(DRV_NONE),
+    mDownSampler(NULL), mChannelMixer(NULL), mReadStatus(NO_ERROR),
+    mInPcmInBuf(0), mPcmIn(NULL), mDriverOp(DRV_NONE),
     mStandbyCnt(0), mSleepReq(false)
 {
 }
@@ -1426,6 +1427,8 @@ status_t AudioHardware::AudioStreamInALSA::set(
     mInputChannelCount = 2;
     mChannels = *pChannels;
     mChannelCount = AudioSystem::popCount(mChannels);
+    delete mChannelMixer;
+    mChannelMixer = NULL;
     if (mChannels != AUDIO_HW_IN_CHANNELS) {
         mChannelMixer = new AudioHardware::ChannelMixer(mChannelCount,
                                     mInputChannelCount, AUDIO_HW_IN_PERIOD_SZ, this);
@@ -1437,10 +1440,15 @@ status_t AudioHardware::AudioStreamInALSA::set(
         }
 
         bufferProvider = mChannelMixer;
-        mPcmIn = new int16_t[AUDIO_HW_IN_PERIOD_SZ * mInputChannelCount];
+        if (!mPcmIn)
+            mPcmIn = new int16_t[AUDIO_HW_IN_PERIOD_SZ * mInputChannelCount];
+        if (!mPcmIn)
+            return NO_MEMORY;
     }
     mBufferSize = getBufferSize(rate, mChannelCount);
     mSampleRate = rate;
+    delete mDownSampler;
+    mDownSampler = NULL;
     if (mSampleRate != AUDIO_HW_IN_SAMPLERATE) {
         mDownSampler = new AudioHardware::DownSampler(mSampleRate,
                                                   mChannelCount,
@@ -1454,7 +1462,9 @@ status_t AudioHardware::AudioStreamInALSA::set(
         }
 
         if (!mPcmIn)
-            mPcmIn = new int16_t[AUDIO_HW_IN_PERIOD_SZ * mChannelCount];
+            mPcmIn = new int16_t[AUDIO_HW_IN_PERIOD_SZ * mInputChannelCount];
+        if (!mPcmIn)
+            return NO_MEMORY;
     }
     return NO_ERROR;
 }
@@ -2215,7 +2225,7 @@ AudioHardware::ChannelMixer::ChannelMixer(uint32_t outChannelCount,
     :  mStatus(NO_INIT), mProvider(provider), mOutChannelCount(outChannelCount),
        mChannelCount(channelCount)
 {
-    LOGV("AudioHardware::DownSampler() cstor %p channels %d frames %d",
+    LOGV("AudioHardware::ChannelMixer() cstor %p channels %d frames %d",
          this, mChannelCount, frameCount);
 
     if (outChannelCount != 1 || channelCount != 2) {
@@ -2229,16 +2239,22 @@ AudioHardware::ChannelMixer::ChannelMixer(uint32_t outChannelCount,
 
 status_t AudioHardware::ChannelMixer::getNextBuffer(AudioHardware::BufferProvider::Buffer* buffer)
 {
+    status_t ret;
+
     if (!mProvider)
         return NO_INIT;
 
-    mProvider->getNextBuffer(buffer);
+    ret = mProvider->getNextBuffer(buffer);
+    if (ret != 0) {
+        LOGE("%s: mProvider->getNextBuffer() failed (%d)", __func__, ret);
+        return ret;
+    }
     if (!buffer->raw)
         return NO_ERROR;
 
     short *in = buffer->i16;
     short *out = buffer->i16;
-    for (unsigned i = 0; i < buffer->frameCount; ++i, ++out, in += 2)
+    for (unsigned int i = 0; i < buffer->frameCount; ++i, ++out, in += 2)
         out[0] = (in[0] + in[1]) / 2;
 
     return NO_ERROR;
@@ -2266,19 +2282,22 @@ int AudioHardware::ChannelMixer::mix(int16_t* out, size_t *outFrameCount)
         buf.frameCount = remaingFrames;
 
         int ret = mProvider->getNextBuffer(&buf);
-        if (buf.raw == NULL) {
+        if (ret || buf.raw == NULL) {
             *outFrameCount -= remaingFrames;
             return ret;
         }
-        
+
+        remaingFrames -= buf.frameCount;
+
         int framesRead = buf.frameCount;
         int16_t *inBuf = buf.i16;
-        while (framesRead--)
-            *(out++) = *(inBuf++);
+        while (framesRead--) {
+            out[0] = (int16_t)(((int32_t)inBuf[0] + (int32_t)inBuf[1]) / 2);
+            out += 1;
+            inBuf += 2;
+        }
 
         mProvider->releaseBuffer(&buf);
-
-        remaingFrames -= framesRead;
     }
 
     return 0;

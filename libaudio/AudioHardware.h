@@ -59,7 +59,7 @@ namespace android {
 // Number of buffers in audio driver for input
 //#define AUDIO_HW_NUM_IN_BUF 2
 // Kernel pcm in buffer size in frames at 44.1kHz (before resampling)
-#define AUDIO_HW_IN_PERIOD_MULT 8  // (16 * 128 = 2048 frames)
+#define AUDIO_HW_IN_PERIOD_MULT 8  // (8 * 128 = 1024 frames)
 #define AUDIO_HW_IN_PERIOD_SZ (PCM_PERIOD_SZ_MIN * AUDIO_HW_IN_PERIOD_MULT)
 #define AUDIO_HW_IN_PERIOD_CNT 4
 // Default audio input buffer size in bytes
