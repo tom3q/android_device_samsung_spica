@@ -89,10 +89,10 @@ TARGET_PROVIDES_LIBRIL := true
 WPA_SUPPLICANT_VERSION := VER_0_6_X
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 BOARD_WLAN_DEVICE := bcm4329
-WIFI_DRIVER_MODULE_PATH     := "/lib/modules/bcmdhd.ko"
-WIFI_DRIVER_FW_STA_PATH     := "/system/etc/fw_bcm4325.bin"
-WIFI_DRIVER_MODULE_NAME     :=  "bcmdhd"
-WIFI_DRIVER_MODULE_ARG      :=  "firmware_path=/system/etc/fw_bcm4325.bin nvram_path=/system/etc/nvram.txt"
+WIFI_DRIVER_MODULE_PATH := "/lib/modules/bcmdhd.ko"
+WIFI_DRIVER_FW_STA_PATH := "/system/etc/fw_bcm4325.bin"
+WIFI_DRIVER_MODULE_NAME := "bcmdhd"
+WIFI_DRIVER_MODULE_ARG := "firmware_path=/system/etc/fw_bcm4325.bin nvram_path=/system/etc/nvram.txt dhd_watchdog_ms=10 dhd_poll=1"
 
 # GPS
 BOARD_GPS_LIBRARIES := libsecgps libsecril-client
