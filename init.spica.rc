@@ -29,21 +29,6 @@ on boot
 # phone
     setprop ro.telephony.call_ring.multiple 0
 
-# change permission for uart_switch
-    chown radio radio /sys/class/sec/uart_switch/UART_SEL/value
-    chmod 660 /sys/class/sec/uart_switch/UART_SEL/value
-
-# change permission for compass
-    chown compass input /sys/class/input/input3/offsets
-    chown compass input /sys/class/input/input3/shape
-    chown compass input /sys/class/input/input3/distortion
-    chown compass input /sys/class/input/input3/threshold
-# create data/gps for GPS demon
-    mkdir /data/gps 700 gps system
-    chown gps system /data/gps
-    chown gps root /sys/class/sec/gps/GPS_PWR_EN/value
-    chmod 660 /sys/class/sec/gps/GPS_PWR_EN/value
-
 on fs
     # Remount /system read-only, because it was mounted rw first (see: init.rc)
     mount ubifs /dev/ubi0_0 /system ro remount
