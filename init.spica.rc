@@ -29,6 +29,10 @@ on boot
 # phone
     setprop ro.telephony.call_ring.multiple 0
 
+# change permission for accelerometer
+    chown system system /sys/class/input/input3/poll
+    chmod 0660 /sys/class/input/input3/poll
+
 on fs
     # Remount /system read-only, because it was mounted rw first (see: init.rc)
     mount ubifs /dev/ubi0_0 /system ro remount
