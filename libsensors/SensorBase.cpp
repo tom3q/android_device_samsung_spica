@@ -53,13 +53,17 @@ SensorBase::~SensorBase() {
 int SensorBase::open_device() {
     if (dev_fd<0 && dev_name) {
         dev_fd = open(dev_name, O_RDONLY);
-        LOGE_IF(dev_fd<0, "Couldn't open %s (%s)", dev_name, strerror(errno));
-        return errno;
+        if (dev_fd<0) {
+                LOGE("Couldn't open %s (%s)", dev_name, strerror(errno));
+                return errno;
+        }
     }
     if (data_fd<0 && data_path) {
         data_fd = open(data_path, O_RDONLY);
-        LOGE_IF(data_fd<0, "Couldn't open %s (%s)", data_path, strerror(errno));
-        return errno;
+        if (data_fd<0) {
+                LOGE("Couldn't open %s (%s)", data_path, strerror(errno));
+                return errno;
+        }
     }
     return 0;
 }
