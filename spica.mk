@@ -73,6 +73,7 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     lights.spica \
     gps.spica \
+    sensors.spica \
     libs3cjpeg \
     libcamera \
     bdaddr_read \
