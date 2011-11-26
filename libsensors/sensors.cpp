@@ -228,7 +228,10 @@ int sensors_poll_context_t::activate(int handle, int enabled) {
         int result;
 
         if (i == numFds) {
-            mPollFds[++lastPollFd].fd = mSensors[index]->getFd();
+            int fd = mSensors[index]->getFd();
+            if (fd < 0)
+                return -EFAULT;
+            mPollFds[++lastPollFd].fd = fd;
             mPollFds[lastPollFd].events = POLLIN;
             mPollFds[lastPollFd].revents = 0;
             mFdToSensor[lastPollFd] = index;
