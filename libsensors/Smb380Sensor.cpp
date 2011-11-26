@@ -47,6 +47,7 @@ Smb380Sensor::Smb380Sensor()
         strcat(input_sysfs_path, "/device/");
         input_sysfs_path_len = strlen(input_sysfs_path);
 
+        close_device();
     }
 }
 
