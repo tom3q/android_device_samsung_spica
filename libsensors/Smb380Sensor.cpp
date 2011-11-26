@@ -41,15 +41,12 @@ Smb380Sensor::Smb380Sensor()
     mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 
-    LOGD("Smb380Sensor::Smb380Sensor() open data_fd");
-
     if (data_fd) {
         strcpy(input_sysfs_path, "/sys/class/input/");
         strcat(input_sysfs_path, input_name);
         strcat(input_sysfs_path, "/device/");
         input_sysfs_path_len = strlen(input_sysfs_path);
 
-        //enable(0, 1);
     }
 }
 
