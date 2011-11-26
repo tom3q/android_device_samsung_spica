@@ -60,15 +60,19 @@ Smb380Sensor::~Smb380Sensor() {
 }
 
 int Smb380Sensor::enable(int32_t, int en) {
+    int ret;
     en = !!en;
 
     if (mEnabled == en)
         return 0;
 
     if (en)
-        open_device();
+        ret = open_device();
     else
-        close_device();
+        ret = close_device();
+
+    if (ret)
+        return ret;
 
     mEnabled = en;
 
