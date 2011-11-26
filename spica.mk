@@ -78,8 +78,8 @@ PRODUCT_PACKAGES += \
     libcamera \
     bdaddr_read \
     show_logo \
-    copybit.s3c6410 \
-    gralloc.s3c6410 \
+    copybit.spica \
+    gralloc.spica \
     libsecgps.so \
     libsec-ril.so \
     libsecril-client.so \
