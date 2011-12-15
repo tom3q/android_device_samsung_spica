@@ -6,3 +6,4 @@ rild.libpath=/system/lib/libsec-ril.so
 rild.libargs=-d /dev/ttyS0
 ro.sf.lcd_density=160
 keyguard.no_require_sim=true
+ro.ril.ntmodeglobal=1
