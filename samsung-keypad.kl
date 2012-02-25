@@ -3,15 +3,15 @@
 key 201     VOLUME_UP       WAKE
 key 209     VOLUME_DOWN     WAKE
 
-key 202     DPAD_UP         WAKE_DROPPED
-key 203     DPAD_RIGHT      WAKE_DROPPED
-key 210     DPAD_DOWN       WAKE_DROPPED
-key 218     DPAD_LEFT       WAKE_DROPPED
-key 204     DPAD_CENTER     WAKE_DROPPED
+key 202     DPAD_UP
+key 203     DPAD_RIGHT
+key 210     DPAD_DOWN
+key 218     DPAD_LEFT
+key 204     DPAD_CENTER
 
-key 211     MENU            WAKE_DROPPED
-key 212     BACK            WAKE_DROPPED
-key 219     CALL            WAKE_DROPPED
-key 226     SEARCH          WAKE_DROPPED
-key 227     HOME            WAKE_DROPPED
-key 228     CAMERA          WAKE_DROPPED
+key 211     MENU
+key 212     BACK
+key 219     CALL
+key 226     SEARCH
+key 227     HOME
+key 228     CAMERA
