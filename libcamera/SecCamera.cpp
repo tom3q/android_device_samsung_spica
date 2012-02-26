@@ -470,6 +470,7 @@ static int fimc_v4l2_s_ctrl(int fp, unsigned int id, unsigned int value)
     return ctrl.value;
 }
 
+#if 0
 static int fimc_v4l2_s_ext_ctrl(int fp, unsigned int id, void *value)
 {
     struct v4l2_ext_controls ctrls;
@@ -489,6 +490,7 @@ static int fimc_v4l2_s_ext_ctrl(int fp, unsigned int id, void *value)
 
     return ret;
 }
+#endif
 
 static int fimc_v4l2_g_parm(int fp, struct v4l2_streamparm *streamparm)
 {
