@@ -72,14 +72,14 @@ namespace android {
 #define JOIN(x, y) JOIN_AGAIN(x, y)
 #define JOIN_AGAIN(x, y) x ## y
 
-#define S5K4CAGX_PREVIEW_WIDTH            720
-#define S5K4CAGX_PREVIEW_HEIGHT           480
+#define S5K4CAGX_PREVIEW_WIDTH            1024
+#define S5K4CAGX_PREVIEW_HEIGHT           768
 #define S5K4CAGX_SNAPSHOT_WIDTH           2048
 #define S5K4CAGX_SNAPSHOT_HEIGHT          1536
 
-#define S5K4CAGX_POSTVIEW_WIDTH           640
-#define S5K4CAGX_POSTVIEW_WIDE_WIDTH      800
-#define S5K4CAGX_POSTVIEW_HEIGHT          480
+#define S5K4CAGX_POSTVIEW_WIDTH           384
+#define S5K4CAGX_POSTVIEW_WIDE_WIDTH      480
+#define S5K4CAGX_POSTVIEW_HEIGHT          320
 #define S5K4CAGX_POSTVIEW_BPP             16
 
 #define S5K4CAGX_THUMBNAIL_WIDTH          320
