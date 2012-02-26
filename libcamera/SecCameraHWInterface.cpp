@@ -1379,12 +1379,7 @@ status_t CameraHardwareSec::setParameters(const CameraParameters& params)
 
         if (!strcmp(new_str_preview_format,
                     CameraParameters::PIXEL_FORMAT_RGB565))
-            new_preview_format = V4L2_PIX_FMT_RGB565;
-        else if (!strcmp(new_str_preview_format,
-                         CameraParameters::PIXEL_FORMAT_YUV420SP))
-            new_preview_format = V4L2_PIX_FMT_NV21;
-        else if (!strcmp(new_str_preview_format, "yuv420sp_custom"))
-            new_preview_format = V4L2_PIX_FMT_NV12T;
+            new_preview_format = V4L2_PIX_FMT_RGB565X;
         else if (!strcmp(new_str_preview_format, "yuv420p"))
             new_preview_format = V4L2_PIX_FMT_YUV420;
         else if (!strcmp(new_str_preview_format, "yuv422i"))
@@ -1392,7 +1387,7 @@ status_t CameraHardwareSec::setParameters(const CameraParameters& params)
         else if (!strcmp(new_str_preview_format, "yuv422p"))
             new_preview_format = V4L2_PIX_FMT_YUV422P;
         else
-            new_preview_format = V4L2_PIX_FMT_NV21; //for 3rd party
+            new_preview_format = V4L2_PIX_FMT_RGB565X;
 
         if (mSecCamera->setPreviewSize(new_preview_width, new_preview_height, new_preview_format) < 0) {
             LOGE("ERR(%s):Fail on mSecCamera->setPreviewSize(width(%d), height(%d), format(%d))",
@@ -1439,11 +1434,7 @@ status_t CameraHardwareSec::setParameters(const CameraParameters& params)
         int new_picture_format = 0;
 
         if (!strcmp(new_str_picture_format, CameraParameters::PIXEL_FORMAT_RGB565))
-            new_picture_format = V4L2_PIX_FMT_RGB565;
-        else if (!strcmp(new_str_picture_format, CameraParameters::PIXEL_FORMAT_YUV420SP))
-            new_picture_format = V4L2_PIX_FMT_NV21;
-        else if (!strcmp(new_str_picture_format, "yuv420sp_custom"))
-            new_picture_format = V4L2_PIX_FMT_NV12T;
+            new_picture_format = V4L2_PIX_FMT_RGB565X;
         else if (!strcmp(new_str_picture_format, "yuv420p"))
             new_picture_format = V4L2_PIX_FMT_YUV420;
         else if (!strcmp(new_str_picture_format, "yuv422i"))
@@ -1457,7 +1448,7 @@ status_t CameraHardwareSec::setParameters(const CameraParameters& params)
         else if (!strcmp(new_str_picture_format, "yuv422p"))
             new_picture_format = V4L2_PIX_FMT_YUV422P;
         else
-            new_picture_format = V4L2_PIX_FMT_NV21; //for 3rd party
+            new_picture_format = V4L2_PIX_FMT_RGB565X;
 
         if (mSecCamera->setSnapshotPixelFormat(new_picture_format) < 0) {
             LOGE("ERR(%s):Fail on mSecCamera->setSnapshotPixelFormat(format(%d))", __func__, new_picture_format);

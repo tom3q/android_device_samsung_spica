@@ -86,26 +86,15 @@ static int get_pixel_depth(unsigned int fmt)
     int depth = 0;
 
     switch (fmt) {
-    case V4L2_PIX_FMT_NV12:
-        depth = 12;
-        break;
-    case V4L2_PIX_FMT_NV12T:
-        depth = 12;
-        break;
-    case V4L2_PIX_FMT_NV21:
-        depth = 12;
-        break;
     case V4L2_PIX_FMT_YUV420:
         depth = 12;
         break;
 
-    case V4L2_PIX_FMT_RGB565:
+    case V4L2_PIX_FMT_RGB565X:
     case V4L2_PIX_FMT_YUYV:
     case V4L2_PIX_FMT_YVYU:
     case V4L2_PIX_FMT_UYVY:
     case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_NV16:
-    case V4L2_PIX_FMT_NV61:
     case V4L2_PIX_FMT_YUV422P:
         depth = 16;
         break;
@@ -126,12 +115,7 @@ static int init_preview_buffers(struct fimc_buffer *buffers, int width, int heig
 {
     int i, len;
 
-    if (fmt==V4L2_PIX_FMT_NV12T) {
-        len = ALIGN_BUF(ALIGN_W(width) * ALIGN_H(height)) +
-              ALIGN_BUF(ALIGN_W(width) * ALIGN_H(height / 2));
-    } else {
-        len = (width * height * get_pixel_depth(fmt)) / 8;
-    }
+    len = (width * height * get_pixel_depth(fmt)) / 8;
 
     for (i = 0; i < MAX_BUFFERS; i++) {
         buffers[i].length = len;
@@ -546,7 +530,7 @@ static int fimc_v4l2_s_parm(int fp, struct v4l2_streamparm *streamparm)
 SecCamera::SecCamera() :
             m_flag_init(0),
             m_camera_id(CAMERA_ID_BACK),
-            m_preview_v4lformat(V4L2_PIX_FMT_NV21),
+            m_preview_v4lformat(V4L2_PIX_FMT_RGB565X),
             m_preview_width      (0),
             m_preview_height     (0),
             m_preview_max_width  (MAX_BACK_CAMERA_PREVIEW_WIDTH),
@@ -910,14 +894,14 @@ int SecCamera::startRecord(void)
     }
 
     /* enum_fmt, s_fmt sample */
-    ret = fimc_v4l2_enum_fmt(m_cam_fd2, V4L2_PIX_FMT_NV12T);
+    ret = fimc_v4l2_enum_fmt(m_cam_fd2, V4L2_PIX_FMT_RGB565X);
     CHECK(ret);
 
     LOGI("%s: m_recording_width = %d, m_recording_height = %d\n",
          __func__, m_recording_width, m_recording_height);
 
     ret = fimc_v4l2_s_fmt(m_cam_fd2, m_recording_width,
-                          m_recording_height, V4L2_PIX_FMT_NV12T, 0);
+                          m_recording_height, V4L2_PIX_FMT_RGB565X, 0);
     CHECK(ret);
 
     ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_FRAME_RATE,
@@ -1094,18 +1078,12 @@ int SecCamera::setPreviewSize(int width, int height, int pixel_format)
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
     if (v4lpixelformat == V4L2_PIX_FMT_YUV420)
         LOGV("PreviewFormat:V4L2_PIX_FMT_YUV420");
-    else if (v4lpixelformat == V4L2_PIX_FMT_NV12)
-        LOGV("PreviewFormat:V4L2_PIX_FMT_NV12");
-    else if (v4lpixelformat == V4L2_PIX_FMT_NV12T)
-        LOGV("PreviewFormat:V4L2_PIX_FMT_NV12T");
-    else if (v4lpixelformat == V4L2_PIX_FMT_NV21)
-        LOGV("PreviewFormat:V4L2_PIX_FMT_NV21");
     else if (v4lpixelformat == V4L2_PIX_FMT_YUV422P)
         LOGV("PreviewFormat:V4L2_PIX_FMT_YUV422P");
     else if (v4lpixelformat == V4L2_PIX_FMT_YUYV)
         LOGV("PreviewFormat:V4L2_PIX_FMT_YUYV");
-    else if (v4lpixelformat == V4L2_PIX_FMT_RGB565)
-        LOGV("PreviewFormat:V4L2_PIX_FMT_RGB565");
+    else if (v4lpixelformat == V4L2_PIX_FMT_RGB565X)
+        LOGV("PreviewFormat:V4L2_PIX_FMT_RGB565X");
     else
         LOGV("PreviewFormat:UnknownFormat");
 #endif
@@ -1262,9 +1240,6 @@ int SecCamera::getExif(unsigned char *pExifDst, unsigned char *pThumbSrc)
         int inFormat = JPG_MODESEL_YCBCR;
         int outFormat = JPG_422;
         switch (m_snapshot_v4lformat) {
-        case V4L2_PIX_FMT_NV12:
-        case V4L2_PIX_FMT_NV21:
-        case V4L2_PIX_FMT_NV12T:
         case V4L2_PIX_FMT_YUV420:
             outFormat = JPG_420;
             break;
@@ -1386,20 +1361,14 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
     if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUV420)
         LOGV("SnapshotFormat:V4L2_PIX_FMT_YUV420");
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV12)
-        LOGV("SnapshotFormat:V4L2_PIX_FMT_NV12");
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV12T)
-        LOGV("SnapshotFormat:V4L2_PIX_FMT_NV12T");
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV21)
-        LOGV("SnapshotFormat:V4L2_PIX_FMT_NV21");
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUV422P)
         LOGV("SnapshotFormat:V4L2_PIX_FMT_YUV422P");
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUYV)
         LOGV("SnapshotFormat:V4L2_PIX_FMT_YUYV");
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_UYVY)
         LOGV("SnapshotFormat:V4L2_PIX_FMT_UYVY");
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565)
-        LOGV("SnapshotFormat:V4L2_PIX_FMT_RGB565");
+    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565X)
+        LOGV("SnapshotFormat:V4L2_PIX_FMT_RGB565X");
     else
         LOGV("SnapshotFormat:UnknownFormat");
 #endif
@@ -1447,9 +1416,6 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
     int outFormat = JPG_422;
 
     switch (m_snapshot_v4lformat) {
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
-    case V4L2_PIX_FMT_NV12T:
     case V4L2_PIX_FMT_YUV420:
         outFormat = JPG_420;
         break;
@@ -1561,20 +1527,14 @@ int SecCamera::setSnapshotPixelFormat(int pixel_format)
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
     if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUV420)
         LOGE("%s : SnapshotFormat:V4L2_PIX_FMT_YUV420", __func__);
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV12)
-        LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_NV12", __func__);
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV12T)
-        LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_NV12T", __func__);
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_NV21)
-        LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_NV21", __func__);
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUV422P)
         LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_YUV422P", __func__);
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUYV)
         LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_YUYV", __func__);
     else if (m_snapshot_v4lformat == V4L2_PIX_FMT_UYVY)
         LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_UYVY", __func__);
-    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565)
-        LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_RGB565", __func__);
+    else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565X)
+        LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_RGB565X", __func__);
     else
         LOGD("SnapshotFormat:UnknownFormat");
 #endif
@@ -3054,14 +3014,7 @@ inline int SecCamera::m_frameSize(int format, int width, int height)
 
     switch (format) {
     case V4L2_PIX_FMT_YUV420:
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
         size = (width * height * 3 / 2);
-        break;
-
-    case V4L2_PIX_FMT_NV12T:
-        size = ALIGN_TO_8KB(ALIGN_TO_128B(width) * ALIGN_TO_32B(height)) +
-                            ALIGN_TO_8KB(ALIGN_TO_128B(width) * ALIGN_TO_32B(height / 2));
         break;
 
     case V4L2_PIX_FMT_YUV422P:
@@ -3072,7 +3025,7 @@ inline int SecCamera::m_frameSize(int format, int width, int height)
 
     default :
         LOGE("ERR(%s):Invalid V4L2 pixel format(%d)\n", __func__, format);
-    case V4L2_PIX_FMT_RGB565:
+    case V4L2_PIX_FMT_RGB565X:
         size = (width * height * BPP);
         break;
     }
