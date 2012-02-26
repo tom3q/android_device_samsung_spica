@@ -663,6 +663,7 @@ int SecCamera::initCamera(int index)
         ret = fimc_v4l2_s_input(m_cam_fd, index);
         CHECK(ret);
 
+#if 0
         m_cam_fd2 = open(CAMERA_DEV_NAME2, O_RDWR);
         if (m_cam_fd2 < 0) {
             LOGE("ERR(%s):Cannot open %s (error : %s)\n", __func__, CAMERA_DEV_NAME2, strerror(errno));
@@ -708,6 +709,9 @@ int SecCamera::initCamera(int index)
             close(m_cam_fd2_temp);
             m_cam_fd2_temp = -1;
         }
+#else
+	m_cam_fd2 = m_cam_fd;
+#endif
 
         LOGE("initCamera: m_cam_fd2(%d)", m_cam_fd2);
 
@@ -754,8 +758,9 @@ void SecCamera::DeinitCamera()
         if (m_cam_fd > -1) {
             close(m_cam_fd);
             m_cam_fd = -1;
+	    m_cam_fd2 = -1;
         }
-
+#if 0
         LOGI("DeinitCamera: m_cam_fd2(%d)", m_cam_fd2);
         if (m_cam_fd2 > -1) {
             close(m_cam_fd2);
@@ -771,7 +776,7 @@ void SecCamera::DeinitCamera()
             close(m_cam_fd2_temp);
             m_cam_fd2_temp = -1;
         }
-
+#endif
         m_flag_init = 0;
     }
 }

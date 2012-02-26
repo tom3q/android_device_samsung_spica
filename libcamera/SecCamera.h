@@ -110,11 +110,9 @@ namespace android {
 #define DEFAULT_JPEG_THUMBNAIL_WIDTH        256
 #define DEFAULT_JPEG_THUMBNAIL_HEIGHT       192
 
-#define CAMERA_DEV_NAME   "/dev/video0"
-#define CAMERA_DEV_NAME2   "/dev/video2"
+#define CAMERA_DEV_NAME   "/dev/video1"
 
 #define CAMERA_DEV_NAME_TEMP "/data/videotmp_000"
-#define CAMERA_DEV_NAME2_TEMP "/data/videotmp_002"
 
 #define BPP             2
 #define MIN(x, y)       (((x) < (y)) ? (x) : (y))
