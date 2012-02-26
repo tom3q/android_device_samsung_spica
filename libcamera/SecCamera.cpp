@@ -238,7 +238,7 @@ static int fimc_v4l2_s_fmt(int fp, int width, int height, unsigned int fmt, int 
     struct v4l2_pix_format pixfmt;
     int ret;
 
-    v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
     memset(&pixfmt, 0, sizeof(pixfmt));
 
@@ -270,7 +270,7 @@ static int fimc_v4l2_s_fmt_cap(int fp, int width, int height, unsigned int fmt)
 
     memset(&pixfmt, 0, sizeof(pixfmt));
 
-    v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
     pixfmt.width = width;
     pixfmt.height = height;
@@ -300,7 +300,7 @@ static int fimc_v4l2_enum_fmt(int fp, unsigned int fmt)
     struct v4l2_fmtdesc fmtdesc;
     int found = 0;
 
-    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     fmtdesc.index = 0;
 
     while (ioctl(fp, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
@@ -372,7 +372,7 @@ static int fimc_v4l2_querybuf(int fp, struct fimc_buffer *buffer, enum v4l2_buf_
 
 static int fimc_v4l2_streamon(int fp)
 {
-    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     int ret;
 
     ret = ioctl(fp, VIDIOC_STREAMON, &type);
@@ -386,7 +386,7 @@ static int fimc_v4l2_streamon(int fp)
 
 static int fimc_v4l2_streamoff(int fp)
 {
-    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     int ret;
 
     LOGV("%s :", __func__);
@@ -404,7 +404,7 @@ static int fimc_v4l2_qbuf(int fp, int index)
     struct v4l2_buffer v4l2_buf;
     int ret;
 
-    v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     v4l2_buf.memory = V4L2_MEMORY_MMAP;
     v4l2_buf.index = index;
 
@@ -422,7 +422,7 @@ static int fimc_v4l2_dqbuf(int fp)
     struct v4l2_buffer v4l2_buf;
     int ret;
 
-    v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     v4l2_buf.memory = V4L2_MEMORY_MMAP;
 
     ret = ioctl(fp, VIDIOC_DQBUF, &v4l2_buf);
@@ -494,7 +494,7 @@ static int fimc_v4l2_g_parm(int fp, struct v4l2_streamparm *streamparm)
 {
     int ret;
 
-    streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
     ret = ioctl(fp, VIDIOC_G_PARM, streamparm);
     if (ret < 0) {
@@ -513,7 +513,7 @@ static int fimc_v4l2_s_parm(int fp, struct v4l2_streamparm *streamparm)
 {
     int ret;
 
-    streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
     ret = ioctl(fp, VIDIOC_S_PARM, streamparm);
     if (ret < 0) {
@@ -818,7 +818,7 @@ int SecCamera::startPreview(void)
     ret = fimc_v4l2_s_fmt(m_cam_fd, m_preview_width,m_preview_height,m_preview_v4lformat, 0);
     CHECK(ret);
 
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE, MAX_BUFFERS);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
     CHECK(ret);
 
     LOGV("%s : m_preview_width: %d m_preview_height: %d m_angle: %d\n",
@@ -913,7 +913,7 @@ int SecCamera::startRecord(void)
                             m_params->capture.timeperframe.denominator);
     CHECK(ret);
 
-    ret = fimc_v4l2_reqbufs(m_cam_fd2, V4L2_BUF_TYPE_VIDEO_CAPTURE, MAX_BUFFERS);
+    ret = fimc_v4l2_reqbufs(m_cam_fd2, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
     CHECK(ret);
 
     /* start with all buffers in queue */
@@ -1160,9 +1160,9 @@ int SecCamera::setSnapshotCmd(void)
     CHECK(ret);
     ret = fimc_v4l2_s_fmt_cap(m_cam_fd, m_snapshot_width, m_snapshot_height, V4L2_PIX_FMT_JPEG);
     CHECK(ret);
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE, nframe);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe);
     CHECK(ret);
-    ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     CHECK(ret);
 
     ret = fimc_v4l2_qbuf(m_cam_fd, 0);
@@ -1385,9 +1385,9 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
     CHECK(ret);
     ret = fimc_v4l2_s_fmt_cap(m_cam_fd, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
     CHECK(ret);
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE, nframe);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe);
     CHECK(ret);
-    ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     CHECK(ret);
 
     ret = fimc_v4l2_qbuf(m_cam_fd, 0);
