@@ -951,7 +951,6 @@ int CameraHardwareSec::pictureThread()
         unsigned int phyAddr;
 
         // Modified the shutter sound timing for Jpeg capture
-        mSecCamera->setSnapshotCmd();
         if (mMsgEnabled & CAMERA_MSG_SHUTTER) {
             mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
         }
