@@ -796,9 +796,9 @@ int SecCamera::startPreview(void)
     LOGV("%s : m_preview_width: %d m_preview_height: %d m_angle: %d\n",
             __func__, m_preview_width, m_preview_height, m_angle);
 
-    ret = fimc_v4l2_s_ctrl(m_cam_fd,
-                           V4L2_CID_CAMERA_CHECK_DATALINE, m_chk_dataline);
-    CHECK(ret);
+//     ret = fimc_v4l2_s_ctrl(m_cam_fd,
+//                            V4L2_CID_CAMERA_CHECK_DATALINE, m_chk_dataline);
+//     CHECK(ret);
 
     /* start with all buffers in queue */
     for (int i = 0; i < MAX_BUFFERS; i++) {
@@ -811,14 +811,14 @@ int SecCamera::startPreview(void)
 
     m_flag_camera_start = 1;
 
-    ret = fimc_v4l2_s_parm(m_cam_fd, &m_streamparm);
-    CHECK(ret);
+ //   ret = fimc_v4l2_s_parm(m_cam_fd, &m_streamparm);
+ //   CHECK(ret);
 
     // It is a delay for a new frame, not to show the previous bigger ugly picture frame.
     ret = fimc_poll(&m_events_c);
     CHECK(ret);
-    ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_RETURN_FOCUS, 0);
-    CHECK(ret);
+//     ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_RETURN_FOCUS, 0);
+//     CHECK(ret);
 
     LOGV("%s: got the first frame of the preview\n", __func__);
 
