@@ -114,9 +114,11 @@ namespace android {
 
 #define CAMERA_DEV_NAME_TEMP "/data/videotmp_000"
 
+#define PMEM_DEV_NAME   "/dev/pmem_gpu1"
+
 #define BPP             2
 #define MIN(x, y)       (((x) < (y)) ? (x) : (y))
-#define MAX_BUFFERS     11
+#define MAX_BUFFERS     6
 
 /*
  * V 4 L 2   F I M C   E X T E N S I O N S
@@ -153,8 +155,10 @@ namespace android {
  */
 
 struct fimc_buffer {
+    int     fd;
     void    *start;
     size_t  length;
+    size_t  actual_length;
 };
 
 struct yuv_fmt_list {

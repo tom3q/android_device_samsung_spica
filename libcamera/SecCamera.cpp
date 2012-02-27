@@ -321,6 +321,47 @@ static int fimc_v4l2_enum_fmt(int fp, unsigned int fmt)
     return 0;
 }
 
+static struct fimc_buffer buffers[MAX_BUFFERS];
+
+#define ALIGN_TO_PAGE(x)        (((x) + 4095) & ~4095)
+
+static int fimc_pmem_reqbufs(int nr_bufs)
+{
+    for (int i = 0; i < MAX_BUFFERS; ++i) {
+        if (buffers[i].fd != -1) {
+            munmap(buffers[i].start, buffers[i].actual_length);
+            close(buffers[i].fd);
+            buffers[i].fd = -1;
+        }
+    }
+
+    if (nr_bufs <= 0)
+        return 0;
+
+    int i = 0;
+    do {
+        int fd = open(PMEM_DEV_NAME, O_RDWR);
+        if (fd < 0) {
+            LOGE("ERR(%s):open(%s) failed (%s)\n",
+                                    __func__, PMEM_DEV_NAME, strerror(errno));
+            return -1;
+        }
+        buffers[i].actual_length = ALIGN_TO_PAGE(buffers[i].length);
+        void *vaddr = mmap(NULL, buffers[i].actual_length,
+                                    PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+        if (vaddr == MAP_FAILED) {
+            LOGE("ERR(%s):mmap failed (%s)\n", __func__, strerror(errno));
+            close(fd);
+            return -1;
+        }
+        buffers[i].fd = fd;
+        buffers[i].start = vaddr;
+        ++i;
+    } while (--nr_bufs);
+
+    return 0;
+}
+
 static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type, int nr_bufs)
 {
     struct v4l2_requestbuffers req;
@@ -328,11 +369,17 @@ static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type, int nr_bufs)
 
     req.count = nr_bufs;
     req.type = type;
-    req.memory = V4L2_MEMORY_MMAP;
+    req.memory = V4L2_MEMORY_USERPTR;
 
     ret = ioctl(fp, VIDIOC_REQBUFS, &req);
     if (ret < 0) {
         LOGE("ERR(%s):VIDIOC_REQBUFS failed\n", __func__);
+        return -1;
+    }
+
+    ret = fimc_pmem_reqbufs(nr_bufs);
+    if (ret < 0) {
+        LOGE("ERR(%s):fimc_pmem_reqbufs failed\n", __func__);
         return -1;
     }
 
@@ -346,26 +393,11 @@ static int fimc_v4l2_querybuf(int fp, struct fimc_buffer *buffer, enum v4l2_buf_
 
     LOGI("%s :", __func__);
 
-    v4l2_buf.type = type;
-    v4l2_buf.memory = V4L2_MEMORY_MMAP;
-    v4l2_buf.index = 0;
+    buffer->start = buffers[0].start;
+    buffer->length = buffers[0].length;
 
-    ret = ioctl(fp , VIDIOC_QUERYBUF, &v4l2_buf);
-    if (ret < 0) {
-        LOGE("ERR(%s):VIDIOC_QUERYBUF failed\n", __func__);
-        return -1;
-    }
-
-    buffer->length = v4l2_buf.length;
-    if ((buffer->start = (char *)mmap(0, v4l2_buf.length,
-                                         PROT_READ | PROT_WRITE, MAP_SHARED,
-                                         fp, v4l2_buf.m.offset)) < 0) {
-         LOGE("%s %d] mmap() failed\n",__func__, __LINE__);
-         return -1;
-    }
-
-    LOGI("%s: buffer->start = %p v4l2_buf.length = %d",
-         __func__, buffer->start, v4l2_buf.length);
+    LOGI("%s: buffer->start = %p buffer->length = %d",
+         __func__, buffer->start, buffer->length);
 
     return 0;
 }
@@ -402,11 +434,21 @@ static int fimc_v4l2_streamoff(int fp)
 static int fimc_v4l2_qbuf(int fp, int index)
 {
     struct v4l2_buffer v4l2_buf;
+    struct v4l2_plane plane;
     int ret;
 
+    memset(&plane, 0, sizeof(plane));
+
+    plane.m.userptr = (unsigned long)buffers[index].start;
+    plane.length = buffers[index].actual_length;
+
+    memset(&v4l2_buf, 0, sizeof(v4l2_buf));
+
     v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    v4l2_buf.memory = V4L2_MEMORY_MMAP;
+    v4l2_buf.memory = V4L2_MEMORY_USERPTR;
     v4l2_buf.index = index;
+    v4l2_buf.m.planes = &plane;
+    v4l2_buf.length = 1;
 
     ret = ioctl(fp, VIDIOC_QBUF, &v4l2_buf);
     if (ret < 0) {
@@ -422,8 +464,10 @@ static int fimc_v4l2_dqbuf(int fp)
     struct v4l2_buffer v4l2_buf;
     int ret;
 
+    memset(&v4l2_buf, 0, sizeof(v4l2_buf));
+
     v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    v4l2_buf.memory = V4L2_MEMORY_MMAP;
+    v4l2_buf.memory = V4L2_MEMORY_USERPTR;
 
     ret = ioctl(fp, VIDIOC_DQBUF, &v4l2_buf);
     if (ret < 0) {
@@ -612,10 +656,9 @@ int SecCamera::initCamera(int index)
     int ret = 0;
 
     if (!m_flag_init) {
-        /* Arun C
-         * Reset the lense position only during camera starts; don't do
-         * reset between shot to shot
-         */
+        for (int i = 0; i < MAX_BUFFERS; ++i)
+            buffers[i].fd = -1;
+
         m_camera_af_flag = -1;
 
         m_cam_fd_temp = -1;
@@ -702,6 +745,8 @@ void SecCamera::DeinitCamera()
             m_cam_fd = -1;
         }
 
+        /* free any pmem buffers */
+        fimc_pmem_reqbufs(0);
 
         m_flag_init = 0;
     }
@@ -744,6 +789,7 @@ int SecCamera::startPreview(void)
     ret = fimc_v4l2_s_fmt(m_cam_fd, m_preview_width,m_preview_height,m_preview_v4lformat, 0);
     CHECK(ret);
 
+    init_preview_buffers(buffers, m_preview_width, m_preview_height, m_preview_v4lformat);
     ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
     CHECK(ret);
 
@@ -839,6 +885,7 @@ int SecCamera::startRecord(void)
                             m_params->capture.timeperframe.denominator);
     CHECK(ret);
 
+    init_preview_buffers(buffers, m_recording_width, m_recording_height, V4L2_PIX_FMT_RGB565X);
     ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
     CHECK(ret);
 
@@ -1288,6 +1335,7 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
     CHECK(ret);
     ret = fimc_v4l2_s_fmt_cap(m_cam_fd, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
     CHECK(ret);
+    init_preview_buffers(buffers, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
     ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe);
     CHECK(ret);
     ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
