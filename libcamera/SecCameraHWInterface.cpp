@@ -65,6 +65,7 @@ CameraHardwareSec::CameraHardwareSec(int cameraId)
         :
           mCaptureInProgress(false),
           mParameters(),
+          mPreviewPmemHeap(0),
           mPreviewHeap(0),
           mRawHeap(0),
           mRecordHeap(0),
@@ -330,7 +331,7 @@ CameraHardwareSec::~CameraHardwareSec()
 
 sp<IMemoryHeap> CameraHardwareSec::getPreviewHeap() const
 {
-    return mPreviewHeap;
+    return mPreviewPmemHeap;
 }
 
 sp<IMemoryHeap> CameraHardwareSec::getRawHeap() const
@@ -404,6 +405,8 @@ int CameraHardwareSec::previewThreadWrapper()
     }
 }
 
+#define ALIGN_TO_PAGE(x)        (((x) + 4095) & ~4095)
+
 int CameraHardwareSec::previewThread()
 {
     int index;
@@ -439,11 +442,11 @@ int CameraHardwareSec::previewThread()
 
     mSecCamera->getPreviewSize(&width, &height, &frame_size);
 
-    offset = (frame_size + 16) * index;
-    sp<MemoryBase> buffer = new MemoryBase(mPreviewHeap, offset, frame_size);
-
+    offset = ALIGN_TO_PAGE(frame_size)*index;
+    sp<MemoryBase> buffer = new MemoryBase(mPreviewPmemHeap, offset, frame_size);
+/*
     memcpy(static_cast<unsigned char *>(mPreviewHeap->base()) + (offset + frame_size    ), &phyYAddr, 4);
-    memcpy(static_cast<unsigned char *>(mPreviewHeap->base()) + (offset + frame_size + 4), &phyCAddr, 4);
+    memcpy(static_cast<unsigned char *>(mPreviewHeap->base()) + (offset + frame_size + 4), &phyCAddr, 4);*/
 
 #if defined(BOARD_USES_OVERLAY)
     if (mUseOverlay) {
@@ -536,17 +539,21 @@ status_t CameraHardwareSec::startPreview()
         return -1; //UNKNOWN_ERROR;
     }
 
+    if (mPreviewPmemHeap != NULL)
+        mPreviewPmemHeap.clear();
+/*
     if (mPreviewHeap != NULL)
-        mPreviewHeap.clear();
+        mPreviewHeap.clear();*/
 
     int width, height, frame_size;
 
     mSecCamera->getPreviewSize(&width, &height, &frame_size);
 
-    int previewHeapSize = (frame_size + 16) * kBufferCount;
+    int previewHeapSize = ALIGN_TO_PAGE(frame_size) * kBufferCount;
 
-    LOGD("MemoryHeapBase(fd(%d), size(%d), width(%d), height(%d))", (int)mSecCamera->getCameraFd(), (size_t)(previewHeapSize), width, height);
-    mPreviewHeap = new MemoryHeapBase((int)mSecCamera->getCameraFd(), (size_t)(previewHeapSize), (uint32_t)0);
+    LOGD("MemoryHeapBase(size(%d), width(%d), height(%d))", (size_t)(previewHeapSize), width, height);
+//     mPreviewHeap = new MemoryHeapBase((int)mSecCamera->getHeapFd(), (size_t)(previewHeapSize), 0, 0);
+    mPreviewPmemHeap = new MemoryHeapPmem(mSecCamera->getPreviewHeap(), 0);
 
     mSecCamera->getPostViewConfig(&mPostViewWidth, &mPostViewHeight, &mPostViewSize);
     LOGV("CameraHardwareSec: mPostViewWidth = %d mPostViewHeight = %d mPostViewSize = %d",mPostViewWidth,mPostViewHeight,mPostViewSize);
@@ -2036,11 +2043,17 @@ void CameraHardwareSec::release()
     if (mJpegHeap != NULL)
         mJpegHeap.clear();
 
-    if (mPreviewHeap != NULL) {
-        LOGI("%s: calling mPreviewHeap.dispose()", __func__);
-        mPreviewHeap->dispose();
-        mPreviewHeap.clear();
+    if (mPreviewPmemHeap != NULL) {
+        LOGI("%s: calling mPreviewPmemHeap.dispose()", __func__);
+        mPreviewPmemHeap->dispose();
+        mPreviewPmemHeap.clear();
     }
+
+//     if (mPreviewHeap != NULL) {
+//         LOGI("%s: calling mPreviewHeap.dispose()", __func__);
+//         mPreviewHeap->dispose();
+//         mPreviewHeap.clear();
+//     }
 
     if (mRecordHeap != NULL)
         mRecordHeap.clear();

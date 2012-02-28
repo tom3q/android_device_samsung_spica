@@ -40,9 +40,11 @@
 
 #include <camera/CameraHardwareInterface.h>
 
-namespace android {
+#include <binder/MemoryBase.h>
+#include <binder/MemoryHeapBase.h>
 
 #define ENABLE_ESD_PREVIEW_CHECK
+namespace android {
 
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
 #define LOG_CAMERA LOGD
@@ -146,19 +148,14 @@ namespace android {
 
 /* FOURCC for FIMC specific */
 #define V4L2_PIX_FMT_VYUY           v4l2_fourcc('V', 'Y', 'U', 'Y')
-#define V4L2_PIX_FMT_NV16           v4l2_fourcc('N', 'V', '1', '6')
-#define V4L2_PIX_FMT_NV61           v4l2_fourcc('N', 'V', '6', '1')
-#define V4L2_PIX_FMT_NV12T          v4l2_fourcc('T', 'V', '1', '2')
 /*
  * U S E R   D E F I N E D   T Y P E S
  *
  */
 
 struct fimc_buffer {
-    int     fd;
     void    *start;
     size_t  length;
-    size_t  actual_length;
 };
 
 struct yuv_fmt_list {
@@ -415,6 +412,7 @@ public:
 
     int             getPostViewOffset(void);
     int             getCameraFd(void);
+    sp<MemoryHeapBase> getPreviewHeap(void);
     int             getJpegFd(void);
     void            SetJpgAddr(unsigned char *addr);
     unsigned int    getPhyAddrY(int);

@@ -111,17 +111,9 @@ static int get_pixel_depth(unsigned int fmt)
 #define ALIGN_H(x)      (((x) + 0x1F) & (~0x1F))    // Set as multiple of 32
 #define ALIGN_BUF(x)    (((x) + 0x1FFF)& (~0x1FFF)) // Set as multiple of 8K
 
-static int init_preview_buffers(struct fimc_buffer *buffers, int width, int height, unsigned int fmt)
+static inline size_t get_buffer_size(int width, int height, unsigned int fmt)
 {
-    int i, len;
-
-    len = (width * height * get_pixel_depth(fmt)) / 8;
-
-    for (i = 0; i < MAX_BUFFERS; i++) {
-        buffers[i].length = len;
-    }
-
-    return 0;
+    return (width * height * get_pixel_depth(fmt)) / 8;
 }
 
 static int fimc_poll(struct pollfd *events)
@@ -322,47 +314,46 @@ static int fimc_v4l2_enum_fmt(int fp, unsigned int fmt)
 }
 
 static struct fimc_buffer buffers[MAX_BUFFERS];
+//static int heap_fd = -1;
+//static void *heap_vaddr = 0;
+//static size_t heap_size = 0;
+static sp<MemoryHeapBase> preview_heap;
 
 #define ALIGN_TO_PAGE(x)        (((x) + 4095) & ~4095)
 
-static int fimc_pmem_reqbufs(int nr_bufs)
+static int fimc_pmem_reqbufs(int nr_bufs, size_t buf_size)
 {
-    for (int i = 0; i < MAX_BUFFERS; ++i) {
-        if (buffers[i].fd != -1) {
-            munmap(buffers[i].start, buffers[i].actual_length);
-            close(buffers[i].fd);
-            buffers[i].fd = -1;
-        }
+    if (preview_heap != NULL) {
+        preview_heap->dispose();
+        preview_heap.clear();
     }
 
     if (nr_bufs <= 0)
         return 0;
 
+    buf_size = ALIGN_TO_PAGE(buf_size);
+    size_t heap_size = buf_size*nr_bufs;
+
+    preview_heap = new MemoryHeapBase(PMEM_DEV_NAME, heap_size, 0);
+
+    void *vaddr = preview_heap->getBase();
+    if (vaddr == MAP_FAILED)
+        return -1;
+
     int i = 0;
     do {
-        int fd = open(PMEM_DEV_NAME, O_RDWR);
-        if (fd < 0) {
-            LOGE("ERR(%s):open(%s) failed (%s)\n",
-                                    __func__, PMEM_DEV_NAME, strerror(errno));
-            return -1;
-        }
-        buffers[i].actual_length = ALIGN_TO_PAGE(buffers[i].length);
-        void *vaddr = mmap(NULL, buffers[i].actual_length,
-                                    PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
-        if (vaddr == MAP_FAILED) {
-            LOGE("ERR(%s):mmap failed (%s)\n", __func__, strerror(errno));
-            close(fd);
-            return -1;
-        }
-        buffers[i].fd = fd;
+        memset(vaddr, i << 5, buf_size);
         buffers[i].start = vaddr;
+        buffers[i].length = buf_size;
+        vaddr = (uint8_t *)vaddr + buf_size;
         ++i;
     } while (--nr_bufs);
 
     return 0;
 }
 
-static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type, int nr_bufs)
+static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type,
+                                                int nr_bufs, size_t buf_size)
 {
     struct v4l2_requestbuffers req;
     int ret;
@@ -377,7 +368,7 @@ static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type, int nr_bufs)
         return -1;
     }
 
-    ret = fimc_pmem_reqbufs(nr_bufs);
+    ret = fimc_pmem_reqbufs(nr_bufs, buf_size);
     if (ret < 0) {
         LOGE("ERR(%s):fimc_pmem_reqbufs failed\n", __func__);
         return -1;
@@ -440,7 +431,7 @@ static int fimc_v4l2_qbuf(int fp, int index)
     memset(&plane, 0, sizeof(plane));
 
     plane.m.userptr = (unsigned long)buffers[index].start;
-    plane.length = buffers[index].actual_length;
+    plane.length = buffers[index].length;
 
     memset(&v4l2_buf, 0, sizeof(v4l2_buf));
 
@@ -656,9 +647,6 @@ int SecCamera::initCamera(int index)
     int ret = 0;
 
     if (!m_flag_init) {
-        for (int i = 0; i < MAX_BUFFERS; ++i)
-            buffers[i].fd = -1;
-
         m_camera_af_flag = -1;
 
         m_cam_fd_temp = -1;
@@ -746,12 +734,16 @@ void SecCamera::DeinitCamera()
         }
 
         /* free any pmem buffers */
-        fimc_pmem_reqbufs(0);
+        fimc_pmem_reqbufs(0, 0);
 
         m_flag_init = 0;
     }
 }
 
+sp<MemoryHeapBase> SecCamera::getPreviewHeap(void)
+{
+    return preview_heap;
+}
 
 int SecCamera::getCameraFd(void)
 {
@@ -789,8 +781,8 @@ int SecCamera::startPreview(void)
     ret = fimc_v4l2_s_fmt(m_cam_fd, m_preview_width,m_preview_height,m_preview_v4lformat, 0);
     CHECK(ret);
 
-    init_preview_buffers(buffers, m_preview_width, m_preview_height, m_preview_v4lformat);
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
+    size_t buf_size = get_buffer_size(m_preview_width, m_preview_height, m_preview_v4lformat);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS, buf_size);
     CHECK(ret);
 
     LOGV("%s : m_preview_width: %d m_preview_height: %d m_angle: %d\n",
@@ -885,8 +877,8 @@ int SecCamera::startRecord(void)
                             m_params->capture.timeperframe.denominator);
     CHECK(ret);
 
-    init_preview_buffers(buffers, m_recording_width, m_recording_height, V4L2_PIX_FMT_RGB565X);
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS);
+    size_t buf_size = get_buffer_size(m_recording_width, m_recording_height, V4L2_PIX_FMT_RGB565X);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS, buf_size);
     CHECK(ret);
 
     /* start with all buffers in queue */
@@ -1259,8 +1251,8 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
     CHECK(ret);
     ret = fimc_v4l2_s_fmt_cap(m_cam_fd, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
     CHECK(ret);
-    init_preview_buffers(buffers, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
-    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe);
+    size_t buf_size = get_buffer_size(m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
+    ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe, buf_size);
     CHECK(ret);
     ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     CHECK(ret);
