@@ -142,19 +142,6 @@ int SecCamera::previewPoll(bool preview)
     int ret;
 
     if (preview) {
-#ifdef ENABLE_ESD_PREVIEW_CHECK
-        int status = 0;
-
-        if (!(++m_esd_check_count % 60)) {
-            status = getCameraSensorESDStatus();
-            m_esd_check_count = 0;
-            if (status) {
-               LOGE("ERR(%s) ESD status(%d)", __func__, status);
-               return status;
-            }
-        }
-#endif
-
         ret = poll(&m_events_c, 1, 1000);
     } else {
         ret = poll(&m_events_c2, 1, 1000);
@@ -604,10 +591,6 @@ SecCamera::SecCamera() :
             m_jpeg_thumbnail_width (0),
             m_jpeg_thumbnail_height(0),
             m_jpeg_quality(100)
-#ifdef ENABLE_ESD_PREVIEW_CHECK
-            ,
-            m_esd_check_count(0)
-#endif // ENABLE_ESD_PREVIEW_CHECK
 {
     m_params = (struct sec_cam_parm*)&m_streamparm.parm.raw_data;
     struct v4l2_captureparm capture;
@@ -950,20 +933,14 @@ unsigned int SecCamera::getRecPhyAddrC(int index)
 
 unsigned int SecCamera::getPhyAddrY(int index)
 {
-    unsigned int addr_y;
-
-    addr_y = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_PADDR_Y, index);
-    CHECK((int)addr_y);
-    return addr_y;
+    /* FIXME */
+    return 0;
 }
 
 unsigned int SecCamera::getPhyAddrC(int index)
 {
-    unsigned int addr_c;
-
-    addr_c = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_PADDR_CBCR, index);
-    CHECK((int)addr_c);
-    return addr_c;
+    /* FIXME */
+    return 0;
 }
 
 void SecCamera::pausePreview()
@@ -978,21 +955,11 @@ int SecCamera::getPreview()
 
     if (m_flag_camera_start == 0 || previewPoll(true) == 0) {
         LOGE("ERR(%s):Start Camera Device Reset \n", __func__);
-        /* GAUDI Project([arun.c@samsung.com]) 2010.05.20. [Implemented ESD code] */
-        /*
-         * When there is no data for more than 1 second from the camera we inform
-         * the FIMC driver by calling fimc_v4l2_s_input() with a special value = 1000
-         * FIMC driver identify that there is something wrong with the camera
-         * and it restarts the sensor.
-         */
         stopPreview();
-        /* Reset Only Camera Device */
         ret = fimc_v4l2_querycap(m_cam_fd);
         CHECK(ret);
         if (fimc_v4l2_enuminput(m_cam_fd, m_camera_id))
             return -1;
-        ret = fimc_v4l2_s_input(m_cam_fd, 1000);
-        CHECK(ret);
         ret = startPreview();
         if (ret < 0) {
             LOGE("ERR(%s): startPreview() return %d\n", __func__, ret);
@@ -2567,18 +2534,6 @@ const __u8* SecCamera::getCameraSensorName(void)
 
     return fimc_v4l2_enuminput(m_cam_fd, getCameraId());
 }
-
-#ifdef ENABLE_ESD_PREVIEW_CHECK
-int SecCamera::getCameraSensorESDStatus(void)
-{
-    LOGV("%s", __func__);
-
-    // 0 : normal operation, 1 : abnormal operation
-    int status = fimc_v4l2_g_ctrl(m_cam_fd, V4L2_CID_ESD_INT);
-
-    return status;
-}
-#endif // ENABLE_ESD_PREVIEW_CHECK
 
 // ======================================================================
 // Jpeg

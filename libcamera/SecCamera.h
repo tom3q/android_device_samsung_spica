@@ -43,7 +43,6 @@
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 
-#define ENABLE_ESD_PREVIEW_CHECK
 namespace android {
 
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
@@ -126,7 +125,6 @@ namespace android {
  * V 4 L 2   F I M C   E X T E N S I O N S
  *
  */
-#define V4L2_CID_ROTATION                   (V4L2_CID_PRIVATE_BASE + 0)
 #define V4L2_CID_PADDR_Y                    (V4L2_CID_PRIVATE_BASE + 1)
 #define V4L2_CID_PADDR_CB                   (V4L2_CID_PRIVATE_BASE + 2)
 #define V4L2_CID_PADDR_CR                   (V4L2_CID_PRIVATE_BASE + 3)
@@ -397,9 +395,6 @@ public:
     int             getDefultIMEI(void);
     const __u8*     getCameraSensorName(void);
     int             previewPoll(bool preview);
-#ifdef ENABLE_ESD_PREVIEW_CHECK
-    int             getCameraSensorESDStatus(void);
-#endif // ENABLE_ESD_PREVIEW_CHECK
 
     int setFrameRate(int frame_rate);
     unsigned char*  getJpeg(int*, unsigned int*);
@@ -519,10 +514,6 @@ private:
     int             m_jpeg_quality;
 
     int             m_postview_offset;
-
-#ifdef ENABLE_ESD_PREVIEW_CHECK
-    int             m_esd_check_count;
-#endif // ENABLE_ESD_PREVIEW_CHECK
 
     exif_attribute_t mExifInfo;
 
