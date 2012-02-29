@@ -43,7 +43,8 @@
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 
-namespace android {
+namespace android
+{
 
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
 #define LOG_CAMERA LOGD
@@ -152,383 +153,341 @@ namespace android {
  */
 
 struct fimc_buffer {
-    void    *start;
-    size_t  length;
+	void    *start;
+	size_t  length;
 };
 
 struct yuv_fmt_list {
-    const char  *name;
-    const char  *desc;
-    unsigned int    fmt;
-    int     depth;
-    int     planes;
+	const char  *name;
+	const char  *desc;
+	unsigned int    fmt;
+	int     depth;
+	int     planes;
 };
 
 //s1 [Apply factory standard]
 struct camsensor_date_info {
-    unsigned int year;
-    unsigned int month;
-    unsigned int date;
+	unsigned int year;
+	unsigned int month;
+	unsigned int date;
 };
 
 
-class SecCamera {
+class SecCamera
+{
 public:
 
-    enum CAMERA_ID {
-        CAMERA_ID_BACK = 0,
-    };
+	enum CAMERA_ID {
+		CAMERA_ID_BACK = 0,
+	};
 
-    enum JPEG_QUALITY {
-        JPEG_QUALITY_ECONOMY    = 0,
-        JPEG_QUALITY_NORMAL     = 50,
-        JPEG_QUALITY_SUPERFINE  = 100,
-        JPEG_QUALITY_MAX,
-    };
+	enum JPEG_QUALITY {
+		JPEG_QUALITY_ECONOMY    = 0,
+		JPEG_QUALITY_NORMAL     = 50,
+		JPEG_QUALITY_SUPERFINE  = 100,
+		JPEG_QUALITY_MAX,
+	};
 
-    enum OBJECT_TRACKING {
-        OBJECT_TRACKING_OFF,
-        OBJECT_TRACKING_ON,
-        OBJECT_TRACKING_MAX,
-    };
+	enum OBJECT_TRACKING {
+		OBJECT_TRACKING_OFF,
+		OBJECT_TRACKING_ON,
+		OBJECT_TRACKING_MAX,
+	};
 
-    /*VT call*/
-    enum VT_MODE {
-        VT_MODE_OFF,
-        VT_MODE_ON,
-        VT_MODE_MAX,
-    };
+	/*VT call*/
+	enum VT_MODE {
+		VT_MODE_OFF,
+		VT_MODE_ON,
+		VT_MODE_MAX,
+	};
 
-    /*Camera sensor mode - Camcorder fix fps*/
-    enum SENSOR_MODE {
-        SENSOR_MODE_CAMERA,
-        SENSOR_MODE_MOVIE,
-    };
+	/*Camera sensor mode - Camcorder fix fps*/
+	enum SENSOR_MODE {
+		SENSOR_MODE_CAMERA,
+		SENSOR_MODE_MOVIE,
+	};
 
-    /*Camera Shot mode*/
-    enum SHOT_MODE {
-        SHOT_MODE_SINGLE        = 0,
-        SHOT_MODE_CONTINUOUS    = 1,
-        SHOT_MODE_PANORAMA      = 2,
-        SHOT_MODE_SMILE         = 3,
-        SHOT_MODE_SELF          = 6,
-    };
+	/*Camera Shot mode*/
+	enum SHOT_MODE {
+		SHOT_MODE_SINGLE        = 0,
+		SHOT_MODE_CONTINUOUS    = 1,
+		SHOT_MODE_PANORAMA      = 2,
+		SHOT_MODE_SMILE         = 3,
+		SHOT_MODE_SELF          = 6,
+	};
 
-    enum CHK_DATALINE {
-        CHK_DATALINE_OFF,
-        CHK_DATALINE_ON,
-        CHK_DATALINE_MAX,
-    };
+	enum CHK_DATALINE {
+		CHK_DATALINE_OFF,
+		CHK_DATALINE_ON,
+		CHK_DATALINE_MAX,
+	};
 
-    int m_touch_af_start_stop;
+	int m_touch_af_start_stop;
 
-    struct gps_info_latiude {
-        unsigned int    north_south;
-        unsigned int    dgree;
-        unsigned int    minute;
-        unsigned int    second;
-    } gpsInfoLatitude;
-    struct gps_info_longitude {
-        unsigned int    east_west;
-        unsigned int    dgree;
-        unsigned int    minute;
-        unsigned int    second;
-    } gpsInfoLongitude;
-    struct gps_info_altitude {
-        unsigned int    plus_minus;
-        unsigned int    dgree;
-        unsigned int    minute;
-        unsigned int    second;
-    } gpsInfoAltitude;
+	struct gps_info_latiude {
+		unsigned int    north_south;
+		unsigned int    dgree;
+		unsigned int    minute;
+		unsigned int    second;
+	} gpsInfoLatitude;
+	struct gps_info_longitude {
+		unsigned int    east_west;
+		unsigned int    dgree;
+		unsigned int    minute;
+		unsigned int    second;
+	} gpsInfoLongitude;
+	struct gps_info_altitude {
+		unsigned int    plus_minus;
+		unsigned int    dgree;
+		unsigned int    minute;
+		unsigned int    second;
+	} gpsInfoAltitude;
 
-    SecCamera();
-    ~SecCamera();
+	SecCamera();
+	~SecCamera();
 
-    static SecCamera* createInstance(void)
-    {
-        static SecCamera singleton;
-        return &singleton;
-    }
-    status_t dump(int fd, const Vector<String16>& args);
+	static SecCamera* createInstance(void) {
+		static SecCamera singleton;
+		return &singleton;
+	}
+	status_t dump(int fd, const Vector<String16>& args);
 
-    int             flagCreate(void) const;
+	int             flagCreate(void) const;
 
 
-    int             getCameraId(void);
+	int             getCameraId(void);
 
-    int             startPreview(void);
-    int             stopPreview(void);
+	int             startPreview(void);
+	int             stopPreview(void);
 
-    int             startRecord(void);
-    int             stopRecord(void);
-    int             getRecordFrame(void);
-    int             releaseRecordFrame(int index);
-    unsigned int    getRecPhyAddrY(int);
-    unsigned int    getRecPhyAddrC(int);
+	int             startRecord(void);
+	int             stopRecord(void);
+	int             getRecordFrame(void);
+	int             releaseRecordFrame(int index);
+	unsigned int    getRecPhyAddrY(int);
+	unsigned int    getRecPhyAddrC(int);
 
-    int             getPreview(void);
-    int             setPreviewSize(int width, int height, int pixel_format);
-    int             getPreviewSize(int *width, int *height, int *frame_size);
-    int             getPreviewMaxSize(int *width, int *height);
-    int             getPreviewPixelFormat(void);
-    int             setPreviewImage(int index, unsigned char *buffer, int size);
+	int             getPreview(void);
+	int             setPreviewSize(int width, int height, int pixel_format);
+	int             getPreviewSize(int *width, int *height, int *frame_size);
+	int             getPreviewMaxSize(int *width, int *height);
+	int             getPreviewPixelFormat(void);
+	int             setPreviewImage(int index, unsigned char *buffer, int size);
 
-    int             setSnapshotSize(int width, int height);
-    int             getSnapshotSize(int *width, int *height, int *frame_size);
-    int             getSnapshotMaxSize(int *width, int *height);
-    int             setSnapshotPixelFormat(int pixel_format);
-    int             getSnapshotPixelFormat(void);
+	int             setSnapshotSize(int width, int height);
+	int             getSnapshotSize(int *width, int *height, int *frame_size);
+	int             getSnapshotMaxSize(int *width, int *height);
+	int             setSnapshotPixelFormat(int pixel_format);
+	int             getSnapshotPixelFormat(void);
 
-    unsigned char*  getJpeg(unsigned char *snapshot_data, int snapshot_size, int *size);
-    unsigned char*  yuv2Jpeg(unsigned char *raw_data, int raw_size,
-                                int *jpeg_size,
-                                int width, int height, int pixel_format);
+	unsigned char*  getJpeg(unsigned char *snapshot_data, int snapshot_size, int *size);
+	unsigned char*  yuv2Jpeg(unsigned char *raw_data, int raw_size,
+				 int *jpeg_size,
+				 int width, int height, int pixel_format);
 
-    int             setJpegThumbnailSize(int width, int height);
-    int             getJpegThumbnailSize(int *width, int *height);
+	int             setJpegThumbnailSize(int width, int height);
+	int             getJpegThumbnailSize(int *width, int *height);
 
-    int             setAutofocus(void);
-    int             zoomIn(void);
-    int             zoomOut(void);
+	int             setAutofocus(void);
 
-    int             SetRotate(int angle);
-    int             getRotate(void);
+	int             setVerticalMirror(void);
+	int             setHorizontalMirror(void);
 
-    int             setVerticalMirror(void);
-    int             setHorizontalMirror(void);
+	int             setWhiteBalance(int white_balance);
+	int             getWhiteBalance(void);
 
-    int             setWhiteBalance(int white_balance);
-    int             getWhiteBalance(void);
+	int             setBrightness(int brightness);
+	int             getBrightness(void);
 
-    int             setBrightness(int brightness);
-    int             getBrightness(void);
+	int             setImageEffect(int image_effect);
+	int             getImageEffect(void);
 
-    int             setImageEffect(int image_effect);
-    int             getImageEffect(void);
+	int             setSceneMode(int scene_mode);
+	int             getSceneMode(void);
 
-    int             setSceneMode(int scene_mode);
-    int             getSceneMode(void);
+	int             setMetering(int metering_value);
+	int             getMetering(void);
 
-    int             setFlashMode(int flash_mode);
-    int             getFlashMode(void);
+	int             setISO(int iso_value);
+	int             getISO(void);
 
-    int             setMetering(int metering_value);
-    int             getMetering(void);
+	int             setContrast(int contrast_value);
+	int             getContrast(void);
 
-    int             setISO(int iso_value);
-    int             getISO(void);
+	int             setSaturation(int saturation_value);
+	int             getSaturation(void);
 
-    int             setContrast(int contrast_value);
-    int             getContrast(void);
+	int             setSharpness(int sharpness_value);
+	int             getSharpness(void);
 
-    int             setSaturation(int saturation_value);
-    int             getSaturation(void);
+	int             setWDR(int wdr_value);
+	int             getWDR(void);
 
-    int             setSharpness(int sharpness_value);
-    int             getSharpness(void);
+	int             setAntiShake(int anti_shake);
+	int             getAntiShake(void);
 
-    int             setWDR(int wdr_value);
-    int             getWDR(void);
+	int             setJpegQuality(int jpeg_qality);
+	int             getJpegQuality(void);
 
-    int             setAntiShake(int anti_shake);
-    int             getAntiShake(void);
+	int             setFocusMode(int focus_mode);
+	int             getFocusMode(void);
 
-    int             setJpegQuality(int jpeg_qality);
-    int             getJpegQuality(void);
+	int             setGPSLatitude(const char *gps_latitude);
+	int             setGPSLongitude(const char *gps_longitude);
+	int             setGPSAltitude(const char *gps_altitude);
+	int             setGPSTimeStamp(const char *gps_timestamp);
+	int             setGPSProcessingMethod(const char *gps_timestamp);
+	int             cancelAutofocus(void);
+	int             setTouchAFStartStop(int start_stop);
+	int             setCAFStatus(int on_off);
+	int             getAutoFocusResult(void);
+	int             setAntiBanding(int anti_banding);
+	int             getPostview(void);
+	int             setRecordingSize(int width, int height);
+	int             setGamma(int gamma);
+	int             setSlowAE(int slow_ae);
+	int             setExifOrientationInfo(int orientationInfo);
+	int             setBatchReflection(void);
+	int             setSnapshotCmd(void);
+	int             endSnapshot(void);
+	int             setCameraSensorReset(void);
+	int             setSensorMode(int sensor_mode); /* Camcorder fix fps */
+	int             setShotMode(int shot_mode);     /* Shot mode */
+	/*VT call*/
+	int             setVTmode(int vtmode);
+	int             getVTmode(void);
+	int             setBlur(int blur_level);
+	int             getBlur(void);
+	int             setDefultIMEI(int imei);
+	int             getDefultIMEI(void);
+	const __u8*     getCameraSensorName(void);
+	int             previewPoll(bool preview);
 
-    int             setZoom(int zoom_level);
-    int             getZoom(void);
+	int setFrameRate(int frame_rate);
+	unsigned char*  getJpeg(int*, unsigned int*);
+	int             getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_buf,
+					   unsigned int *output_size);
+	int             getExif(unsigned char *pExifDst, unsigned char *pThumbSrc);
 
-    int             setObjectTracking(int object_tracking);
-    int             getObjectTracking(void);
-    int             getObjectTrackingStatus(void);
+	void            getPostViewConfig(int*, int*, int*);
+	void            getThumbnailConfig(int *width, int *height, int *size);
 
-    int             setSmartAuto(int smart_auto);
-    int             getSmartAuto(void);
-    int             getAutosceneStatus(void);
+	int             getPostViewOffset(void);
+	int             getCameraFd(void);
+	sp<MemoryHeapBase> getPreviewHeap(void);
+	int             getJpegFd(void);
+	void            SetJpgAddr(unsigned char *addr);
+	void            pausePreview();
+	int             initCamera(int index);
+	void            DeinitCamera();
+	static void     setJpegRatio(double ratio) {
+		if((ratio < 0) || (ratio > 1))
+			return;
 
-    int             setBeautyShot(int beauty_shot);
-    int             getBeautyShot(void);
+		jpeg_ratio = ratio;
+	}
 
-    int             setVintageMode(int vintage_mode);
-    int             getVintageMode(void);
+	static double   getJpegRatio() {
+		return jpeg_ratio;
+	}
 
-    int             setFocusMode(int focus_mode);
-    int             getFocusMode(void);
+	static void     setInterleaveDataSize(int x) {
+		interleaveDataSize = x;
+	}
 
-    int             setFaceDetect(int face_detect);
-    int             getFaceDetect(void);
+	static int      getInterleaveDataSize() {
+		return interleaveDataSize;
+	}
 
-    int             setGPSLatitude(const char *gps_latitude);
-    int             setGPSLongitude(const char *gps_longitude);
-    int             setGPSAltitude(const char *gps_altitude);
-    int             setGPSTimeStamp(const char *gps_timestamp);
-    int             setGPSProcessingMethod(const char *gps_timestamp);
-    int             cancelAutofocus(void);
-    int             setFaceDetectLockUnlock(int facedetect_lockunlock);
-    int             setObjectPosition(int x, int y);
-    int             setObjectTrackingStartStop(int start_stop);
-    int             setTouchAFStartStop(int start_stop);
-    int             setCAFStatus(int on_off);
-    int             getAutoFocusResult(void);
-    int             setAntiBanding(int anti_banding);
-    int             getPostview(void);
-    int             setRecordingSize(int width, int height);
-    int             setGamma(int gamma);
-    int             setSlowAE(int slow_ae);
-    int             setExifOrientationInfo(int orientationInfo);
-    int             setBatchReflection(void);
-    int             setSnapshotCmd(void);
-    int             endSnapshot(void);
-    int             setCameraSensorReset(void);
-    int             setSensorMode(int sensor_mode); /* Camcorder fix fps */
-    int             setShotMode(int shot_mode);     /* Shot mode */
-    /*VT call*/
-    int             setVTmode(int vtmode);
-    int             getVTmode(void);
-    int             setBlur(int blur_level);
-    int             getBlur(void);
-    int             setDataLineCheck(int chk_dataline);
-    int             getDataLineCheck(void);
-    int             setDataLineCheckStop(void);
-    int             setDefultIMEI(int imei);
-    int             getDefultIMEI(void);
-    const __u8*     getCameraSensorName(void);
-    int             previewPoll(bool preview);
+	static void     setJpegLineLength(int x) {
+		jpegLineLength = x;
+	}
 
-    int setFrameRate(int frame_rate);
-    unsigned char*  getJpeg(int*, unsigned int*);
-    int             getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_buf,
-                                        unsigned int *output_size);
-    int             getExif(unsigned char *pExifDst, unsigned char *pThumbSrc);
-
-    void            getPostViewConfig(int*, int*, int*);
-    void            getThumbnailConfig(int *width, int *height, int *size);
-
-    int             getPostViewOffset(void);
-    int             getCameraFd(void);
-    sp<MemoryHeapBase> getPreviewHeap(void);
-    int             getJpegFd(void);
-    void            SetJpgAddr(unsigned char *addr);
-    unsigned int    getPhyAddrY(int);
-    unsigned int    getPhyAddrC(int);
-    void            pausePreview();
-    int             initCamera(int index);
-    void            DeinitCamera();
-    static void     setJpegRatio(double ratio)
-    {
-        if((ratio < 0) || (ratio > 1))
-            return;
-
-        jpeg_ratio = ratio;
-    }
-
-    static double   getJpegRatio()
-    {
-        return jpeg_ratio;
-    }
-
-    static void     setInterleaveDataSize(int x)
-    {
-        interleaveDataSize = x;
-    }
-
-    static int      getInterleaveDataSize()
-    {
-        return interleaveDataSize;
-    }
-
-    static void     setJpegLineLength(int x)
-    {
-        jpegLineLength = x;
-    }
-
-    static int      getJpegLineLength()
-    {
-        return jpegLineLength;
-    }
+	static int      getJpegLineLength() {
+		return jpegLineLength;
+	}
 
 
 private:
-    v4l2_streamparm m_streamparm;
-    struct sec_cam_parm   *m_params;
-    int             m_flag_init;
+	v4l2_streamparm m_streamparm;
+	struct sec_cam_parm   *m_params;
+	int             m_flag_init;
 
-    int             m_camera_id;
+	int             m_camera_id;
 
-    int             m_cam_fd;
+	int             m_cam_fd;
 
-    int             m_cam_fd_temp;
-    int             m_cam_fd2_temp;
+	int             m_cam_fd_temp;
+	int             m_cam_fd2_temp;
 
-    int             m_cam_fd2;
-    struct pollfd   m_events_c2;
-    int             m_flag_record_start;
+	int             m_cam_fd2;
+	struct pollfd   m_events_c2;
+	int             m_flag_record_start;
 
-    int             m_preview_v4lformat;
-    int             m_preview_width;
-    int             m_preview_height;
-    int             m_preview_max_width;
-    int             m_preview_max_height;
+	int             m_preview_v4lformat;
+	int             m_preview_width;
+	int             m_preview_height;
+	int             m_preview_max_width;
+	int             m_preview_max_height;
 
-    int             m_snapshot_v4lformat;
-    int             m_snapshot_width;
-    int             m_snapshot_height;
-    int             m_snapshot_max_width;
-    int             m_snapshot_max_height;
+	int             m_snapshot_v4lformat;
+	int             m_snapshot_width;
+	int             m_snapshot_height;
+	int             m_snapshot_max_width;
+	int             m_snapshot_max_height;
 
-    int             m_angle;
-    int             m_anti_banding;
-    int             m_wdr;
-    int             m_anti_shake;
-    int             m_zoom_level;
-    int             m_object_tracking;
-    int             m_smart_auto;
-    int             m_beauty_shot;
-    int             m_vintage_mode;
-    int             m_face_detect;
-    int             m_object_tracking_start_stop;
-    int             m_recording_width;
-    int             m_recording_height;
-    long            m_gps_latitude;
-    long            m_gps_longitude;
-    long            m_gps_altitude;
-    long            m_gps_timestamp;
-    int             m_vtmode;
-    int             m_sensor_mode; /*Camcorder fix fps */
-    int             m_shot_mode; /* Shot mode */
-    int             m_exif_orientation;
-    int             m_blur_level;
-    int             m_chk_dataline;
-    int             m_video_gamma;
-    int             m_slow_ae;
-    int             m_caf_on_off;
-    int             m_default_imei;
-    int             m_camera_af_flag;
+	int             m_angle;
+	int             m_anti_banding;
+	int             m_wdr;
+	int             m_anti_shake;
+	int             m_zoom_level;
+	int             m_object_tracking;
+	int             m_smart_auto;
+	int             m_beauty_shot;
+	int             m_vintage_mode;
+	int             m_face_detect;
+	int             m_object_tracking_start_stop;
+	int             m_recording_width;
+	int             m_recording_height;
+	long            m_gps_latitude;
+	long            m_gps_longitude;
+	long            m_gps_altitude;
+	long            m_gps_timestamp;
+	int             m_vtmode;
+	int             m_sensor_mode; /*Camcorder fix fps */
+	int             m_shot_mode; /* Shot mode */
+	int             m_exif_orientation;
+	int             m_blur_level;
+	int             m_chk_dataline;
+	int             m_video_gamma;
+	int             m_slow_ae;
+	int             m_caf_on_off;
+	int             m_default_imei;
+	int             m_camera_af_flag;
 
-    int             m_flag_camera_start;
+	int             m_flag_camera_start;
 
-    int             m_jpeg_fd;
-    int             m_jpeg_thumbnail_width;
-    int             m_jpeg_thumbnail_height;
-    int             m_jpeg_quality;
+	int             m_jpeg_fd;
+	int             m_jpeg_thumbnail_width;
+	int             m_jpeg_thumbnail_height;
+	int             m_jpeg_quality;
 
-    int             m_postview_offset;
+	int             m_postview_offset;
 
-    exif_attribute_t mExifInfo;
+	exif_attribute_t mExifInfo;
 
-    struct fimc_buffer m_capture_buf;
-    struct pollfd   m_events_c;
+	struct fimc_buffer m_capture_buf;
+	struct pollfd   m_events_c;
 
-    inline int      m_frameSize(int format, int width, int height);
+	inline int      m_frameSize(int format, int width, int height);
 
-    void            setExifChangedAttribute();
-    void            setExifFixedAttribute();
-    void            resetCamera();
+	void            setExifChangedAttribute();
+	void            setExifFixedAttribute();
+	void            resetCamera();
 
-    static double   jpeg_ratio;
-    static int      interleaveDataSize;
-    static int      jpegLineLength;
+	static double   jpeg_ratio;
+	static int      interleaveDataSize;
+	static int      jpegLineLength;
 };
 
 extern unsigned long measure_time(struct timeval *start, struct timeval *stop);
