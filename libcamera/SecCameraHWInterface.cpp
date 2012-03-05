@@ -445,7 +445,7 @@ int CameraHardwareSec::previewThread()
 #endif
 
 	// Notify the client of a new frame.
-	if (mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) {
+	if (mPreviewRunning && (mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME)) {
 		mDataCb(CAMERA_MSG_PREVIEW_FRAME, buffer, mCallbackCookie);
 	}
 
