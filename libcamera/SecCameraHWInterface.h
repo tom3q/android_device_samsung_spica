@@ -164,6 +164,10 @@ private:
 	void        setSkipFrame(int frame);
 	bool        isSupportedPreviewSize(const int width,
 					   const int height) const;
+
+	int setPreviewFormat(int width, int height, const char *format);
+	int setPictureFormat(const char *format);
+
 	/* used by auto focus thread to block until it's told to run */
 	mutable Mutex       mFocusLock;
 	mutable Condition   mFocusCondition;

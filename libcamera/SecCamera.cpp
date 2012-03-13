@@ -36,51 +36,17 @@
 
 using namespace android;
 
-#define CHECK(return_value)                                          \
-    if (return_value < 0) {                                          \
-        LOGE("%s::%d fail. errno: %s, m_camera_id = %d\n",           \
-             __func__, __LINE__, strerror(errno), m_camera_id);      \
-        return -1;                                                   \
-    }
+#define ERR(ret)							\
+        LOGE("%s::%d fail. ret: %d, errno: %s, m_camera_id = %d\n",	\
+             __func__, __LINE__, ret, strerror(errno), m_camera_id);
 
+#define ALIGN_TO_PAGE(x)        (((x) + 4095) & ~4095)
 
-#define CHECK_PTR(return_value)                                      \
-    if (return_value < 0) {                                          \
-        LOGE("%s::%d fail, errno: %s, m_camera_id = %d\n",           \
-             __func__,__LINE__, strerror(errno), m_camera_id);       \
-        return NULL;                                                 \
-    }
+namespace android {
 
-#define ALIGN_TO_32B(x)   ((((x) + (1 <<  5) - 1) >>  5) <<  5)
-#define ALIGN_TO_128B(x)  ((((x) + (1 <<  7) - 1) >>  7) <<  7)
-#define ALIGN_TO_8KB(x)   ((((x) + (1 << 13) - 1) >> 13) << 13)
-
-namespace android
-{
-
-// ======================================================================
-// Camera controls
-
-static struct timeval time_start;
-static struct timeval time_stop;
-
-unsigned long measure_time(struct timeval *start, struct timeval *stop)
-{
-	unsigned long sec, usec, time;
-
-	sec = stop->tv_sec - start->tv_sec;
-
-	if (stop->tv_usec >= start->tv_usec) {
-		usec = stop->tv_usec - start->tv_usec;
-	} else {
-		usec = stop->tv_usec + 1000000 - start->tv_usec;
-		sec--;
-	}
-
-	time = (sec * 1000000) + usec;
-
-	return time;
-}
+/*
+ * Utility functions
+ */
 
 static int get_pixel_depth(unsigned int fmt)
 {
@@ -108,85 +74,119 @@ static int get_pixel_depth(unsigned int fmt)
 	return depth;
 }
 
-#define ALIGN_W(x)      (((x) + 0x7F) & (~0x7F))    // Set as multiple of 128
-#define ALIGN_H(x)      (((x) + 0x1F) & (~0x1F))    // Set as multiple of 32
-#define ALIGN_BUF(x)    (((x) + 0x1FFF)& (~0x1FFF)) // Set as multiple of 8K
-
 static inline size_t get_buffer_size(int width, int height, unsigned int fmt)
 {
 	return (width * height * get_pixel_depth(fmt)) / 8;
 }
 
-static int fimc_poll(struct pollfd *events)
+static inline size_t get_buffer_size_aligned(int width, int height,
+							unsigned int fmt)
 {
+	return ALIGN_TO_PAGE(get_buffer_size(width, height, fmt));
+}
+
+/*
+ * Generic V4L2 device implementation
+ */
+
+class V4L2Device {
+	int fd;
+	struct fimc_buffer buffers[MAX_BUFFERS];
+	sp<MemoryHeapBase> heap;
+
+	int allocateBuffers(int nr, size_t size);
+
+public:
+	V4L2Device(const char *device);
+	~V4L2Device(void);
+
+	bool initCheck(void)
+	{
+		return fd != -1;
+	}
+
+	int pollDevice(short mask, int timeout);
+	int queryCap(int mask);
+	const __u8* enumInput(int index);
+	int setInput(int index);
+	int setFormat(enum v4l2_buf_type type,
+				int width, int height, unsigned int fmt);
+	int enumFormat(enum v4l2_buf_type type, unsigned int fmt);
+	int reqBufs(enum v4l2_buf_type type, int nr_bufs, size_t buf_size);
+	int queryBuf(enum v4l2_buf_type type, int index,
+						void **addr, size_t *length);
+	int setStream(enum v4l2_buf_type type, bool on);
+	int queueBuf(enum v4l2_buf_type type, int index);
+	int dequeueBuf(enum v4l2_buf_type type);
+	int getCtrl(unsigned int id);
+	int setCtrl(unsigned int id, unsigned int value);
+	int getParam(enum v4l2_buf_type type,
+					struct v4l2_streamparm *streamparm);
+	int setParam(enum v4l2_buf_type type,
+					struct v4l2_streamparm *streamparm);
+	sp<MemoryHeapBase> getHeap(void);
+};
+
+V4L2Device::V4L2Device(const char *device) :
+	fd(-1)
+{
+	fd = open(device, O_RDWR);
+}
+
+V4L2Device::~V4L2Device(void)
+{
+	allocateBuffers(0, 0);
+	if (fd >= 0)
+		close(fd);
+}
+
+int V4L2Device::pollDevice(short mask, int timeout)
+{
+	struct pollfd events;
 	int ret;
 
-	/* 10 second delay is because sensor can take a long time
-	 * to do auto focus and capture in dark settings
-	 */
-	ret = poll(events, 1, 10000);
+	memset(&events, 0, sizeof(events));
+	events.fd = fd;
+	events.events = mask;
+
+	ret = poll(&events, 1, timeout);
 	if (ret < 0) {
 		LOGE("ERR(%s):poll error\n", __func__);
 		return ret;
 	}
 
 	if (ret == 0) {
-		LOGE("ERR(%s):No data in 10 secs..\n", __func__);
+		LOGE("ERR(%s):No data in %d secs..\n", __func__, timeout / 1000);
 		return ret;
 	}
 
 	return ret;
 }
 
-int SecCamera::previewPoll(bool preview)
-{
-	int ret;
-
-	if (preview) {
-		ret = poll(&m_events_c, 1, 1000);
-	} else {
-		ret = poll(&m_events_c2, 1, 1000);
-	}
-
-	if (ret < 0) {
-		LOGE("ERR(%s):poll error\n", __func__);
-		return ret;
-	}
-
-	if (ret == 0) {
-		LOGE("ERR(%s):No data in 1 secs.. Camera Device Reset \n", __func__);
-		return ret;
-	}
-
-	return ret;
-}
-
-static int fimc_v4l2_querycap(int fp)
+int V4L2Device::queryCap(int mask)
 {
 	struct v4l2_capability cap;
 	int ret = 0;
 
-	ret = ioctl(fp, VIDIOC_QUERYCAP, &cap);
+	ret = ioctl(fd, VIDIOC_QUERYCAP, &cap);
 
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_QUERYCAP failed\n", __func__);
 		return -1;
 	}
 
-	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-		LOGE("ERR(%s):no capture devices\n", __func__);
+	if (!(cap.capabilities & mask))
 		return -1;
-	}
 
 	return ret;
 }
 
-static const __u8* fimc_v4l2_enuminput(int fp, int index)
+const __u8* V4L2Device::enumInput(int index)
 {
 	static struct v4l2_input input;
 
 	input.index = index;
-	if (ioctl(fp, VIDIOC_ENUMINPUT, &input) != 0) {
+	if (ioctl(fd, VIDIOC_ENUMINPUT, &input) != 0) {
 		LOGE("ERR(%s):No matching index found\n", __func__);
 		return NULL;
 	}
@@ -195,15 +195,14 @@ static const __u8* fimc_v4l2_enuminput(int fp, int index)
 	return input.name;
 }
 
-
-static int fimc_v4l2_s_input(int fp, int index)
+int V4L2Device::setInput(int index)
 {
 	struct v4l2_input input;
 	int ret;
 
 	input.index = index;
 
-	ret = ioctl(fp, VIDIOC_S_INPUT, &input);
+	ret = ioctl(fd, VIDIOC_S_INPUT, &input);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_S_INPUT failed\n", __func__);
 		return ret;
@@ -212,28 +211,31 @@ static int fimc_v4l2_s_input(int fp, int index)
 	return ret;
 }
 
-static int fimc_v4l2_s_fmt(int fp, int width, int height, unsigned int fmt, int flag_capture)
+int V4L2Device::setFormat(enum v4l2_buf_type type,
+					int width, int height, unsigned int fmt)
 {
 	struct v4l2_format v4l2_fmt;
 	struct v4l2_pix_format pixfmt;
 	int ret;
 
-	v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	v4l2_fmt.type = type;
 
 	memset(&pixfmt, 0, sizeof(pixfmt));
 
 	pixfmt.width = width;
 	pixfmt.height = height;
 	pixfmt.pixelformat = fmt;
+	if (fmt == V4L2_PIX_FMT_JPEG)
+		pixfmt.colorspace = V4L2_COLORSPACE_JPEG;
 
-	pixfmt.sizeimage = (width * height * get_pixel_depth(fmt)) / 8;
+	pixfmt.sizeimage = get_buffer_size(width, height, fmt);
 
 	pixfmt.field = V4L2_FIELD_NONE;
 
 	v4l2_fmt.fmt.pix = pixfmt;
 
 	/* Set up for capture */
-	ret = ioctl(fp, VIDIOC_S_FMT, &v4l2_fmt);
+	ret = ioctl(fd, VIDIOC_S_FMT, &v4l2_fmt);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_S_FMT failed\n", __func__);
 		return -1;
@@ -242,50 +244,18 @@ static int fimc_v4l2_s_fmt(int fp, int width, int height, unsigned int fmt, int 
 	return 0;
 }
 
-static int fimc_v4l2_s_fmt_cap(int fp, int width, int height, unsigned int fmt)
-{
-	struct v4l2_format v4l2_fmt;
-	struct v4l2_pix_format pixfmt;
-	int ret;
-
-	memset(&pixfmt, 0, sizeof(pixfmt));
-
-	v4l2_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-
-	pixfmt.width = width;
-	pixfmt.height = height;
-	pixfmt.pixelformat = fmt;
-	if (fmt == V4L2_PIX_FMT_JPEG) {
-		pixfmt.colorspace = V4L2_COLORSPACE_JPEG;
-	}
-
-	pixfmt.sizeimage = (width * height * get_pixel_depth(fmt)) / 8;
-
-	v4l2_fmt.fmt.pix = pixfmt;
-
-	//LOGE("ori_w %d, ori_h %d, w %d, h %d\n", width, height, v4l2_fmt.fmt.pix.width, v4l2_fmt.fmt.pix.height);
-
-	/* Set up for capture */
-	ret = ioctl(fp, VIDIOC_S_FMT, &v4l2_fmt);
-	if (ret < 0) {
-		LOGE("ERR(%s):VIDIOC_S_FMT failed\n", __func__);
-		return ret;
-	}
-
-	return ret;
-}
-
-static int fimc_v4l2_enum_fmt(int fp, unsigned int fmt)
+int V4L2Device::enumFormat(enum v4l2_buf_type type, unsigned int fmt)
 {
 	struct v4l2_fmtdesc fmtdesc;
 	int found = 0;
 
-	fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	fmtdesc.type = type;
 	fmtdesc.index = 0;
 
-	while (ioctl(fp, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
+	while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
 		if (fmtdesc.pixelformat == fmt) {
-			LOGV("passed fmt = %#x found pixel format[%d]: %s\n", fmt, fmtdesc.index, fmtdesc.description);
+			LOGV("passed fmt = %#x found pixel format[%d]: %s\n",
+				fmt, fmtdesc.index, fmtdesc.description);
 			found = 1;
 			break;
 		}
@@ -301,16 +271,11 @@ static int fimc_v4l2_enum_fmt(int fp, unsigned int fmt)
 	return 0;
 }
 
-static struct fimc_buffer buffers[MAX_BUFFERS];
-static sp<MemoryHeapBase> preview_heap;
-
-#define ALIGN_TO_PAGE(x)        (((x) + 4095) & ~4095)
-
-static int fimc_pmem_reqbufs(int nr_bufs, size_t buf_size)
+int V4L2Device::allocateBuffers(int nr_bufs, size_t buf_size)
 {
-	if (preview_heap != NULL) {
-		preview_heap->dispose();
-		preview_heap.clear();
+	if (heap != NULL) {
+		heap->dispose();
+		heap.clear();
 	}
 
 	if (nr_bufs <= 0)
@@ -319,9 +284,9 @@ static int fimc_pmem_reqbufs(int nr_bufs, size_t buf_size)
 	buf_size = ALIGN_TO_PAGE(buf_size);
 	size_t heap_size = buf_size*nr_bufs;
 
-	preview_heap = new MemoryHeapBase(PMEM_DEV_NAME, heap_size, 0);
+	heap = new MemoryHeapBase(PMEM_DEV_NAME, heap_size, 0);
 
-	void *vaddr = preview_heap->getBase();
+	void *vaddr = heap->getBase();
 	if (vaddr == MAP_FAILED)
 		return -1;
 
@@ -337,8 +302,7 @@ static int fimc_pmem_reqbufs(int nr_bufs, size_t buf_size)
 	return 0;
 }
 
-static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type,
-			     int nr_bufs, size_t buf_size)
+int V4L2Device::reqBufs(enum v4l2_buf_type type, int nr_bufs, size_t buf_size)
 {
 	struct v4l2_requestbuffers req;
 	int ret;
@@ -347,67 +311,61 @@ static int fimc_v4l2_reqbufs(int fp, enum v4l2_buf_type type,
 	req.type = type;
 	req.memory = V4L2_MEMORY_USERPTR;
 
-	ret = ioctl(fp, VIDIOC_REQBUFS, &req);
+	ret = ioctl(fd, VIDIOC_REQBUFS, &req);
 	if (ret < 0) {
-		LOGE("ERR(%s):VIDIOC_REQBUFS failed\n", __func__);
+		LOGE("ERR(%s): VIDIOC_REQBUFS failed\n", __func__);
 		return -1;
 	}
 
-	ret = fimc_pmem_reqbufs(nr_bufs, buf_size);
+	ret = allocateBuffers(nr_bufs, buf_size);
 	if (ret < 0) {
-		LOGE("ERR(%s):fimc_pmem_reqbufs failed\n", __func__);
+		LOGE("ERR(%s): allocateBuffers failed\n", __func__);
 		return -1;
 	}
 
 	return req.count;
 }
 
-static int fimc_v4l2_querybuf(int fp, struct fimc_buffer *buffer, enum v4l2_buf_type type)
+int V4L2Device::queryBuf(enum v4l2_buf_type type, int index,
+						void **addr, size_t *length)
 {
 	struct v4l2_buffer v4l2_buf;
 	int ret;
 
 	LOGI("%s :", __func__);
 
-	buffer->start = buffers[0].start;
-	buffer->length = buffers[0].length;
+	if (index >= MAX_BUFFERS) {
+		LOGE("%s: invalid buffer index %d", __func__, index);
+		return -1;
+	}
+
+	*addr = buffers[index].start;
+	*length = buffers[index].length;
 
 	LOGI("%s: buffer->start = %p buffer->length = %d",
-	     __func__, buffer->start, buffer->length);
+	     __func__, buffers[index].start, buffers[index].length);
 
 	return 0;
 }
 
-static int fimc_v4l2_streamon(int fp)
+int V4L2Device::setStream(enum v4l2_buf_type type, bool on)
 {
-	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	int request;
 	int ret;
 
-	ret = ioctl(fp, VIDIOC_STREAMON, &type);
+	request = (on) ? VIDIOC_STREAMON : VIDIOC_STREAMOFF;
+
+	ret = ioctl(fd, request, &type);
 	if (ret < 0) {
-		LOGE("ERR(%s):VIDIOC_STREAMON failed\n", __func__);
+		LOGE("ERR(%s):VIDIOC_STREAM%s failed\n",
+						__func__, (on) ? "ON" : "OFF");
 		return ret;
 	}
 
 	return ret;
 }
 
-static int fimc_v4l2_streamoff(int fp)
-{
-	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-	int ret;
-
-	LOGV("%s :", __func__);
-	ret = ioctl(fp, VIDIOC_STREAMOFF, &type);
-	if (ret < 0) {
-		LOGE("ERR(%s):VIDIOC_STREAMOFF failed\n", __func__);
-		return ret;
-	}
-
-	return ret;
-}
-
-static int fimc_v4l2_qbuf(int fp, int index)
+int V4L2Device::queueBuf(enum v4l2_buf_type type, int index)
 {
 	struct v4l2_buffer v4l2_buf;
 	struct v4l2_plane plane;
@@ -420,13 +378,13 @@ static int fimc_v4l2_qbuf(int fp, int index)
 
 	memset(&v4l2_buf, 0, sizeof(v4l2_buf));
 
-	v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	v4l2_buf.type = type;
 	v4l2_buf.memory = V4L2_MEMORY_USERPTR;
 	v4l2_buf.index = index;
 	v4l2_buf.m.planes = &plane;
 	v4l2_buf.length = 1;
 
-	ret = ioctl(fp, VIDIOC_QBUF, &v4l2_buf);
+	ret = ioctl(fd, VIDIOC_QBUF, &v4l2_buf);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_QBUF failed\n", __func__);
 		return ret;
@@ -435,17 +393,17 @@ static int fimc_v4l2_qbuf(int fp, int index)
 	return 0;
 }
 
-static int fimc_v4l2_dqbuf(int fp)
+int V4L2Device::dequeueBuf(enum v4l2_buf_type type)
 {
 	struct v4l2_buffer v4l2_buf;
 	int ret;
 
 	memset(&v4l2_buf, 0, sizeof(v4l2_buf));
 
-	v4l2_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	v4l2_buf.type = type;
 	v4l2_buf.memory = V4L2_MEMORY_USERPTR;
 
-	ret = ioctl(fp, VIDIOC_DQBUF, &v4l2_buf);
+	ret = ioctl(fd, VIDIOC_DQBUF, &v4l2_buf);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_DQBUF failed, dropped frame\n", __func__);
 		return ret;
@@ -454,14 +412,14 @@ static int fimc_v4l2_dqbuf(int fp)
 	return v4l2_buf.index;
 }
 
-static int fimc_v4l2_g_ctrl(int fp, unsigned int id)
+int V4L2Device::getCtrl(unsigned int id)
 {
 	struct v4l2_control ctrl;
 	int ret;
 
 	ctrl.id = id;
 
-	ret = ioctl(fp, VIDIOC_G_CTRL, &ctrl);
+	ret = ioctl(fd, VIDIOC_G_CTRL, &ctrl);
 	if (ret < 0) {
 		LOGE("ERR(%s): VIDIOC_G_CTRL(id = 0x%x (%d)) failed, ret = %d\n",
 		     __func__, id, id-V4L2_CID_PRIVATE_BASE, ret);
@@ -471,7 +429,7 @@ static int fimc_v4l2_g_ctrl(int fp, unsigned int id)
 	return ctrl.value;
 }
 
-static int fimc_v4l2_s_ctrl(int fp, unsigned int id, unsigned int value)
+int V4L2Device::setCtrl(unsigned int id, unsigned int value)
 {
 	struct v4l2_control ctrl;
 	int ret;
@@ -479,7 +437,7 @@ static int fimc_v4l2_s_ctrl(int fp, unsigned int id, unsigned int value)
 	ctrl.id = id;
 	ctrl.value = value;
 
-	ret = ioctl(fp, VIDIOC_S_CTRL, &ctrl);
+	ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_S_CTRL(id = %#x (%d), value = %d) failed ret = %d\n",
 		     __func__, id, id-V4L2_CID_PRIVATE_BASE, value, ret);
@@ -490,13 +448,14 @@ static int fimc_v4l2_s_ctrl(int fp, unsigned int id, unsigned int value)
 	return ctrl.value;
 }
 
-static int fimc_v4l2_g_parm(int fp, struct v4l2_streamparm *streamparm)
+int V4L2Device::getParam(enum v4l2_buf_type type,
+					struct v4l2_streamparm *streamparm)
 {
 	int ret;
 
-	streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	streamparm->type = type;
 
-	ret = ioctl(fp, VIDIOC_G_PARM, streamparm);
+	ret = ioctl(fd, VIDIOC_G_PARM, streamparm);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_G_PARM failed\n", __func__);
 		return -1;
@@ -509,13 +468,14 @@ static int fimc_v4l2_g_parm(int fp, struct v4l2_streamparm *streamparm)
 	return 0;
 }
 
-static int fimc_v4l2_s_parm(int fp, struct v4l2_streamparm *streamparm)
+int V4L2Device::setParam(enum v4l2_buf_type type,
+					struct v4l2_streamparm *streamparm)
 {
 	int ret;
 
-	streamparm->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	streamparm->type = type;
 
-	ret = ioctl(fp, VIDIOC_S_PARM, streamparm);
+	ret = ioctl(fd, VIDIOC_S_PARM, streamparm);
 	if (ret < 0) {
 		LOGE("ERR(%s):VIDIOC_S_PARM failed\n", __func__);
 		return ret;
@@ -524,11 +484,20 @@ static int fimc_v4l2_s_parm(int fp, struct v4l2_streamparm *streamparm)
 	return 0;
 }
 
-// ======================================================================
-// Constructor & Destructor
+sp<MemoryHeapBase> V4L2Device::getHeap(void)
+{
+	return heap;
+}
+
+/******************************************************************************/
+
+/*
+ * SecCamera
+ */
+
+/* Constructor/destructor */
 
 SecCamera::SecCamera() :
-	m_flag_init(0),
 	m_camera_id(CAMERA_ID_BACK),
 	m_preview_v4lformat(V4L2_PIX_FMT_RGB565X),
 	m_preview_width      (0),
@@ -540,8 +509,6 @@ SecCamera::SecCamera() :
 	m_snapshot_height     (0),
 	m_snapshot_max_width  (MAX_BACK_CAMERA_SNAPSHOT_WIDTH),
 	m_snapshot_max_height (MAX_BACK_CAMERA_SNAPSHOT_HEIGHT),
-	m_angle(-1),
-	m_anti_banding(-1),
 	m_wdr(-1),
 	m_anti_shake(-1),
 	m_gps_latitude(-1),
@@ -582,134 +549,125 @@ SecCamera::SecCamera() :
 	LOGV("%s :", __func__);
 }
 
-int SecCamera::flagCreate(void) const
-{
-	LOGV("%s : : %d", __func__, m_flag_init);
-	return m_flag_init;
-}
-
 SecCamera::~SecCamera()
 {
 	LOGV("%s :", __func__);
 }
 
-int SecCamera::initCamera(int index)
+/* Open/close */
+
+int SecCamera::isOpened(void) const
+{
+	LOGV("%s : : %d", __func__, device != 0);
+	return device != 0;
+}
+
+int SecCamera::openCamera(int index)
 {
 	LOGV("%s :", __func__);
 	int ret = 0;
 
-	if (!m_flag_init) {
-		m_camera_af_flag = -1;
+	if (index != 0)
+		return -1;
 
-		m_cam_fd_temp = -1;
+	if (device)
+		return 0;
 
-		m_cam_fd = open(CAMERA_DEV_NAME, O_RDWR);
-		if (m_cam_fd < 0) {
-			LOGE("ERR(%s):Cannot open %s (error : %s)\n", __func__, CAMERA_DEV_NAME, strerror(errno));
-			return -1;
-		}
+	m_camera_af_flag = -1;
 
-		if (m_cam_fd < 3) { // for 0, 1, 2
-			LOGE("ERR(%s):m_cam_fd is %d\n", __func__, m_cam_fd);
-
-			close(m_cam_fd);
-
-			m_cam_fd_temp = open(CAMERA_DEV_NAME_TEMP, O_CREAT);
-
-			LOGE("ERR(%s):m_cam_fd_temp is %d\n", __func__, m_cam_fd_temp);
-
-			m_cam_fd = open(CAMERA_DEV_NAME, O_RDWR);
-
-			if (m_cam_fd < 3) { // for 0, 1, 2
-				LOGE("ERR(%s):retring to open %s is failed, %d\n", __func__, CAMERA_DEV_NAME, m_cam_fd);
-
-				if (m_cam_fd < 0) {
-					return -1;
-				} else {
-					close(m_cam_fd);
-					m_cam_fd = -1;
-				}
-
-				if (m_cam_fd_temp != -1) {
-					close(m_cam_fd_temp);
-					m_cam_fd_temp = -1;
-				}
-				return -1;
-			}
-		}
-
-		LOGD("initCamera: m_cam_fd(%d), m_jpeg_fd(%d)", m_cam_fd, m_jpeg_fd);
-
-		ret = fimc_v4l2_querycap(m_cam_fd);
-		CHECK(ret);
-		if (!fimc_v4l2_enuminput(m_cam_fd, index))
-			return -1;
-		ret = fimc_v4l2_s_input(m_cam_fd, index);
-		CHECK(ret);
-
-		m_camera_id = index;
-
-		m_preview_max_width   = MAX_BACK_CAMERA_PREVIEW_WIDTH;
-		m_preview_max_height  = MAX_BACK_CAMERA_PREVIEW_HEIGHT;
-		m_snapshot_max_width  = MAX_BACK_CAMERA_SNAPSHOT_WIDTH;
-		m_snapshot_max_height = MAX_BACK_CAMERA_SNAPSHOT_HEIGHT;
-
-		setExifFixedAttribute();
-
-		m_flag_init = 1;
+	device = new V4L2Device(CAMERA_DEV_NAME);
+	if (!device || !device->initCheck()) {
+		delete device;
+		device = 0;
+		LOGE("ERR(%s): Cannot open %s (error : %s)\n", __func__, CAMERA_DEV_NAME, strerror(errno));
+		return -1;
 	}
+
+	LOGD("%s: V4L2 device opened.", __func__);
+
+	ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE);
+	if (ret < 0) {
+		ERR(ret);
+		goto error;
+	}
+
+	if (device->enumInput(index) == NULL) {
+		ERR(ret);
+		goto error;
+	}
+
+	ret = device->setInput(index);
+	if (ret < 0) {
+		ERR(ret);
+		goto error;
+	}
+
+	m_camera_id = index;
+
+	m_preview_max_width   = MAX_BACK_CAMERA_PREVIEW_WIDTH;
+	m_preview_max_height  = MAX_BACK_CAMERA_PREVIEW_HEIGHT;
+	m_snapshot_max_width  = MAX_BACK_CAMERA_SNAPSHOT_WIDTH;
+	m_snapshot_max_height = MAX_BACK_CAMERA_SNAPSHOT_HEIGHT;
+
+	setExifFixedAttribute();
+
 	return 0;
+
+error:
+	delete device;
+	device = 0;
+
+	return -1;
 }
 
-void SecCamera::resetCamera()
+void SecCamera::closeCamera(void)
 {
 	LOGV("%s :", __func__);
-	DeinitCamera();
-	initCamera(m_camera_id);
+
+	if (!device)
+		return;
+
+	stopRecord();
+
+	/* close m_cam_fd after stopRecord() because stopRecord()
+		* uses m_cam_fd to change frame rate
+		*/
+	delete device;
+	device = 0;
 }
 
-void SecCamera::DeinitCamera()
+/* Preview */
+
+sp<MemoryHeapBase> SecCamera::getBufferHeap(void)
 {
-	LOGV("%s :", __func__);
+	if (!device)
+		return NULL;
 
-	if (m_flag_init) {
+	return device->getHeap();
+}
 
-		stopRecord();
+int SecCamera::previewPoll(void)
+{
+	int ret;
 
-		/* close m_cam_fd after stopRecord() because stopRecord()
-		 * uses m_cam_fd to change frame rate
-		 */
-		LOGI("DeinitCamera: m_cam_fd(%d)", m_cam_fd);
-		if (m_cam_fd > -1) {
-			close(m_cam_fd);
-			m_cam_fd = -1;
-		}
-
-		/* free any pmem buffers */
-		fimc_pmem_reqbufs(0, 0);
-
-		m_flag_init = 0;
+	ret = device->pollDevice(POLLIN | POLLERR, 1000);
+	if (ret < 0) {
+		LOGE("ERR(%s):poll error\n", __func__);
+		return ret;
 	}
-}
 
-sp<MemoryHeapBase> SecCamera::getPreviewHeap(void)
-{
-	return preview_heap;
-}
+	if (ret == 0) {
+		LOGE("ERR(%s):No data in 1 secs..\n", __func__);
+		return ret;
+	}
 
-int SecCamera::getCameraFd(void)
-{
-	return m_cam_fd;
+	return ret;
 }
-
-// ======================================================================
-// Preview
 
 int SecCamera::startPreview(void)
 {
-	v4l2_streamparm streamparm;
-	struct sec_cam_parm *parms;
-	parms = (struct sec_cam_parm*)&streamparm.parm.raw_data;
+	int ret;
+
 	LOGV("%s :", __func__);
 
 	// aleady started
@@ -718,49 +676,65 @@ int SecCamera::startPreview(void)
 		return 0;
 	}
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	memset(&m_events_c, 0, sizeof(m_events_c));
-	m_events_c.fd = m_cam_fd;
-	m_events_c.events = POLLIN | POLLERR;
+	ret = device->enumFormat(m_buf_type, m_preview_v4lformat);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	/* enum_fmt, s_fmt sample */
-	int ret = fimc_v4l2_enum_fmt(m_cam_fd,m_preview_v4lformat);
-	CHECK(ret);
-	ret = fimc_v4l2_s_fmt(m_cam_fd, m_preview_width,m_preview_height,m_preview_v4lformat, 0);
-	CHECK(ret);
+	ret = device->setFormat(m_buf_type,
+			m_preview_width, m_preview_height, m_preview_v4lformat);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	size_t buf_size = get_buffer_size(m_preview_width, m_preview_height, m_preview_v4lformat);
-	ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS, buf_size);
-	CHECK(ret);
+	size_t buf_size = get_buffer_size(m_preview_width,
+					m_preview_height, m_preview_v4lformat);
+	ret = device->reqBufs(m_buf_type, MAX_BUFFERS, buf_size);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	LOGV("%s : m_preview_width: %d m_preview_height: %d m_angle: %d\n",
-	     __func__, m_preview_width, m_preview_height, m_angle);
+	LOGV("%s : m_preview_width: %d m_preview_height: %d\n",
+				__func__, m_preview_width, m_preview_height);
 
 	/* start with all buffers in queue */
 	for (int i = 0; i < MAX_BUFFERS; i++) {
-		ret = fimc_v4l2_qbuf(m_cam_fd, i);
-		CHECK(ret);
+		ret = device->queueBuf(m_buf_type, i);
+		if (ret < 0) {
+			ERR(ret);
+			return -1;
+		}
 	}
 
-	ret = fimc_v4l2_streamon(m_cam_fd);
-	CHECK(ret);
+	ret = device->setStream(m_buf_type, true);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	m_flag_camera_start = 1;
-
-//   ret = fimc_v4l2_s_parm(m_cam_fd, &m_streamparm);
-//   CHECK(ret);
+	/* TODO: Set all sensor parameters here */
 
 	// It is a delay for a new frame, not to show the previous bigger ugly picture frame.
-	ret = fimc_poll(&m_events_c);
-	CHECK(ret);
-//     ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_RETURN_FOCUS, 0);
-//     CHECK(ret);
+	ret = device->pollDevice(POLLIN | POLLERR, 10000);
+	if (ret < 0) {
+		device->setStream(m_buf_type, false);
+		ERR(ret);
+		return -1;
+	}
+
+	/* TODO: Is V4L2_CID_CAMERA_RETURN_FOCUS needed here? */
 
 	LOGV("%s: got the first frame of the preview\n", __func__);
+
+	m_flag_camera_start = 1;
 
 	return 0;
 }
@@ -776,126 +750,20 @@ int SecCamera::stopPreview(void)
 		return 0;
 	}
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	ret = fimc_v4l2_streamoff(m_cam_fd);
-	CHECK(ret);
+	ret = device->setStream(m_buf_type, false);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
 	m_flag_camera_start = 0;
 
 	return ret;
-}
-
-//Recording
-int SecCamera::startRecord(void)
-{
-	int ret, i;
-
-	LOGV("%s :", __func__);
-
-	// aleady started
-	if (m_flag_record_start > 0) {
-		LOGE("ERR(%s):Preview was already started\n", __func__);
-		return 0;
-	}
-
-	if (m_cam_fd <= 0) {
-		LOGE("ERR(%s):Camera was closed\n", __func__);
-		return -1;
-	}
-
-	/* enum_fmt, s_fmt sample */
-	ret = fimc_v4l2_enum_fmt(m_cam_fd, V4L2_PIX_FMT_RGB565X);
-	CHECK(ret);
-
-	LOGI("%s: m_recording_width = %d, m_recording_height = %d\n",
-	     __func__, m_recording_width, m_recording_height);
-
-	ret = fimc_v4l2_s_fmt(m_cam_fd, m_recording_width,
-			      m_recording_height, V4L2_PIX_FMT_RGB565X, 0);
-	CHECK(ret);
-
-	ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_FRAME_RATE,
-			       m_params->capture.timeperframe.denominator);
-	CHECK(ret);
-
-	size_t buf_size = get_buffer_size(m_recording_width, m_recording_height, V4L2_PIX_FMT_RGB565X);
-	ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, MAX_BUFFERS, buf_size);
-	CHECK(ret);
-
-	/* start with all buffers in queue */
-	for (i = 0; i < MAX_BUFFERS; i++) {
-		ret = fimc_v4l2_qbuf(m_cam_fd, i);
-		CHECK(ret);
-	}
-
-	ret = fimc_v4l2_streamon(m_cam_fd);
-	CHECK(ret);
-
-	// Get and throw away the first frame since it is often garbled.
-	memset(&m_events_c2, 0, sizeof(m_events_c2));
-	m_events_c2.fd = m_cam_fd;
-	m_events_c2.events = POLLIN | POLLERR;
-	ret = fimc_poll(&m_events_c2);
-	CHECK(ret);
-
-	m_flag_record_start = 1;
-
-	return 0;
-}
-
-int SecCamera::stopRecord(void)
-{
-	int ret;
-
-	LOGV("%s :", __func__);
-
-	if (m_flag_record_start == 0) {
-		LOGW("%s: doing nothing because m_flag_record_start is zero", __func__);
-		return 0;
-	}
-
-	if (m_cam_fd <= 0) {
-		LOGE("ERR(%s):Camera was closed\n", __func__);
-		return -1;
-	}
-
-	m_flag_record_start = 0;
-
-	ret = fimc_v4l2_streamoff(m_cam_fd);
-	CHECK(ret);
-
-	ret = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_FRAME_RATE,
-			       FRAME_RATE_AUTO);
-	CHECK(ret);
-
-	return 0;
-}
-
-unsigned int SecCamera::getRecPhyAddrY(int index)
-{
-	unsigned int addr_y;
-
-	addr_y = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_PADDR_Y, index);
-	CHECK((int)addr_y);
-	return addr_y;
-}
-
-unsigned int SecCamera::getRecPhyAddrC(int index)
-{
-	unsigned int addr_c;
-
-	addr_c = fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_PADDR_CBCR, index);
-	CHECK((int)addr_c);
-	return addr_c;
-}
-
-void SecCamera::pausePreview()
-{
-	fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_STREAM_PAUSE, 0);
 }
 
 int SecCamera::getPreview()
@@ -903,13 +771,22 @@ int SecCamera::getPreview()
 	int index;
 	int ret;
 
-	if (m_flag_camera_start == 0 || previewPoll(true) == 0) {
+	if (m_flag_camera_start == 0 || previewPoll() == 0) {
 		LOGE("ERR(%s):Start Camera Device Reset \n", __func__);
+
 		stopPreview();
-		ret = fimc_v4l2_querycap(m_cam_fd);
-		CHECK(ret);
-		if (fimc_v4l2_enuminput(m_cam_fd, m_camera_id))
+
+		ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE);
+		if (ret < 0) {
+			ERR(ret);
 			return -1;
+		}
+
+		if (!device->enumInput(m_camera_id)) {
+			ERR(0);
+			return -1;
+		}
+
 		ret = startPreview();
 		if (ret < 0) {
 			LOGE("ERR(%s): startPreview() return %d\n", __func__, ret);
@@ -917,43 +794,19 @@ int SecCamera::getPreview()
 		}
 	}
 
-	index = fimc_v4l2_dqbuf(m_cam_fd);
-	if (!(0 <= index && index < MAX_BUFFERS)) {
+	index = device->dequeueBuf(m_buf_type);
+	if (index < 0 || index >= MAX_BUFFERS) {
 		LOGE("ERR(%s):wrong index = %d\n", __func__, index);
 		return -1;
 	}
 
-	ret = fimc_v4l2_qbuf(m_cam_fd, index);
-	CHECK(ret);
-
-	return index;
-}
-
-int SecCamera::getRecordFrame()
-{
-	if (m_flag_record_start == 0) {
-		LOGE("%s: m_flag_record_start is 0", __func__);
+	ret = device->queueBuf(m_buf_type, index);
+	if (ret < 0) {
+		ERR(ret);
 		return -1;
 	}
 
-	previewPoll(false);
-	return fimc_v4l2_dqbuf(m_cam_fd);
-}
-
-int SecCamera::releaseRecordFrame(int index)
-{
-	if (!m_flag_record_start) {
-		/* this can happen when recording frames are returned after
-		 * the recording is stopped at the driver level.  we don't
-		 * need to return the buffers in this case and we've seen
-		 * cases where fimc could crash if we called qbuf and it
-		 * wasn't expecting it.
-		 */
-		LOGI("%s: recording not in progress, ignoring", __func__);
-		return 0;
-	}
-
-	return fimc_v4l2_qbuf(m_cam_fd, index);
+	return index;
 }
 
 int SecCamera::setPreviewSize(int width, int height, int pixel_format)
@@ -981,26 +834,12 @@ int SecCamera::setPreviewSize(int width, int height, int pixel_format)
 	return 0;
 }
 
-int SecCamera::endSnapshot(void)
-{
-	int ret;
-
-	LOGI("%s :", __func__);
-	if (m_capture_buf.start) {
-		munmap(m_capture_buf.start, m_capture_buf.length);
-		LOGI("munmap():virt. addr %p size = %d\n",
-		     m_capture_buf.start, m_capture_buf.length);
-		m_capture_buf.start = NULL;
-		m_capture_buf.length = 0;
-	}
-	return 0;
-}
-
 int SecCamera::getPreviewSize(int *width, int *height, int *frame_size)
 {
 	*width  = m_preview_width;
 	*height = m_preview_height;
-	*frame_size = m_frameSize(m_preview_v4lformat, m_preview_width, m_preview_height);
+	*frame_size = get_buffer_size(m_preview_width,
+					m_preview_height, m_preview_v4lformat);
 
 	return 0;
 }
@@ -1016,6 +855,143 @@ int SecCamera::getPreviewMaxSize(int *width, int *height)
 int SecCamera::getPreviewPixelFormat(void)
 {
 	return m_preview_v4lformat;
+}
+
+/* Recording */
+
+int SecCamera::startRecord(void)
+{
+	int ret, i;
+
+	LOGV("%s :", __func__);
+
+	if (m_flag_record_start > 0) {
+		LOGE("ERR(%s): Recording was already started\n", __func__);
+		return 0;
+	}
+
+	if (!device) {
+		LOGE("ERR(%s): Camera was closed\n", __func__);
+		return -1;
+	}
+
+	ret = device->enumFormat(m_buf_type, V4L2_PIX_FMT_YUV420);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	LOGI("%s: m_recording_width = %d, m_recording_height = %d\n",
+			__func__, m_recording_width, m_recording_height);
+
+	ret = device->setFormat(m_buf_type, m_recording_width,
+				m_recording_height, V4L2_PIX_FMT_YUV420);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	ret = device->setCtrl(V4L2_CID_CAMERA_FRAME_RATE,
+			       m_params->capture.timeperframe.denominator);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	size_t buf_size = get_buffer_size(m_recording_width,
+				m_recording_height, V4L2_PIX_FMT_YUV420);
+	ret = device->reqBufs(m_buf_type, MAX_BUFFERS, buf_size);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	/* start with all buffers in queue */
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		ret = device->queueBuf(m_buf_type, i);
+		if (ret < 0) {
+			ERR(ret);
+			return -1;
+		}
+	}
+
+	ret = device->setStream(m_buf_type, true);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	/* Get and throw away the first frame since it is often garbled. */
+	ret = device->pollDevice(POLLIN | POLLERR, 10000);
+	if (ret < 0) {
+		device->setStream(m_buf_type, false);
+		ERR(ret);
+		return -1;
+	}
+
+	m_flag_record_start = 1;
+
+	return 0;
+}
+
+int SecCamera::stopRecord(void)
+{
+	int ret;
+
+	LOGV("%s :", __func__);
+
+	if (m_flag_record_start == 0) {
+		LOGW("%s: doing nothing because m_flag_record_start is zero", __func__);
+		return 0;
+	}
+
+	if (!device) {
+		LOGE("ERR(%s): Camera was closed\n", __func__);
+		return -1;
+	}
+
+	m_flag_record_start = 0;
+
+	ret = device->setStream(m_buf_type, false);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	ret = device->setCtrl(V4L2_CID_CAMERA_FRAME_RATE, FRAME_RATE_AUTO);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int SecCamera::getRecordFrame()
+{
+	if (m_flag_record_start == 0) {
+		LOGE("%s: m_flag_record_start is 0", __func__);
+		return -1;
+	}
+
+	previewPoll();
+	return device->dequeueBuf(m_buf_type);
+}
+
+int SecCamera::releaseRecordFrame(int index)
+{
+	if (!m_flag_record_start) {
+		/* this can happen when recording frames are returned after
+		 * the recording is stopped at the driver level.  we don't
+		 * need to return the buffers in this case and we've seen
+		 * cases where fimc could crash if we called qbuf and it
+		 * wasn't expecting it.
+		 */
+		LOGI("%s: recording not in progress, ignoring", __func__);
+		return 0;
+	}
+
+	return device->queueBuf(m_buf_type, index);
 }
 
 int SecCamera::getExif(unsigned char *pExifDst, unsigned char *pThumbSrc)
@@ -1106,45 +1082,26 @@ void SecCamera::getThumbnailConfig(int *width, int *height, int *size)
 		  * BACK_CAMERA_THUMBNAIL_BPP / 8;
 }
 
-int SecCamera::getPostViewOffset(void)
-{
-	return m_postview_offset;
-}
+/* Snapshot */
 
-int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_buf,
-				  unsigned int *output_size)
+int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf,
+			unsigned char *jpeg_buf, unsigned int *output_size)
 {
-	LOGV("%s :", __func__);
-
 	int index;
-	//unsigned int addr;
 	unsigned char *addr;
 	int ret = 0;
 
-	LOG_TIME_DEFINE(0)
-	LOG_TIME_DEFINE(1)
-	LOG_TIME_DEFINE(2)
-	LOG_TIME_DEFINE(3)
-	LOG_TIME_DEFINE(4)
-	LOG_TIME_DEFINE(5)
+	LOGV("%s :", __func__);
 
-	//fimc_v4l2_streamoff(m_cam_fd); [zzangdol] remove - it is separate in HWInterface with camera_id
-
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
 	if (m_flag_camera_start > 0) {
-		LOG_TIME_START(0)
 		LOGW("WARN(%s):Camera was in preview, should have been stopped\n", __func__);
 		stopPreview();
-		LOG_TIME_END(0)
 	}
-
-	memset(&m_events_c, 0, sizeof(m_events_c));
-	m_events_c.fd = m_cam_fd;
-	m_events_c.events = POLLIN | POLLERR;
 
 #if defined(LOG_NDEBUG) && LOG_NDEBUG == 0
 	if (m_snapshot_v4lformat == V4L2_PIX_FMT_YUV420)
@@ -1161,44 +1118,65 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
 		LOGV("SnapshotFormat:UnknownFormat");
 #endif
 
-	LOG_TIME_START(1) // prepare
-	int nframe = 1;
+	ret = device->enumFormat(m_buf_type, m_snapshot_v4lformat);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	ret = fimc_v4l2_enum_fmt(m_cam_fd,m_snapshot_v4lformat);
-	CHECK(ret);
-	ret = fimc_v4l2_s_fmt_cap(m_cam_fd, m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
-	CHECK(ret);
-	size_t buf_size = get_buffer_size(m_snapshot_width, m_snapshot_height, m_snapshot_v4lformat);
-	ret = fimc_v4l2_reqbufs(m_cam_fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, nframe, buf_size);
-	CHECK(ret);
-	ret = fimc_v4l2_querybuf(m_cam_fd, &m_capture_buf, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
-	CHECK(ret);
+	ret = device->setFormat(m_buf_type, m_snapshot_width,
+				m_snapshot_height, m_snapshot_v4lformat);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	ret = fimc_v4l2_qbuf(m_cam_fd, 0);
-	CHECK(ret);
+	size_t buf_size = get_buffer_size(m_snapshot_width,
+				m_snapshot_height, m_snapshot_v4lformat);
+	ret = device->reqBufs(m_buf_type, 1, buf_size);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	ret = fimc_v4l2_streamon(m_cam_fd);
-	CHECK(ret);
-	LOG_TIME_END(1)
+	ret = device->queryBuf(m_buf_type, 0,
+				&m_capture_buf.start, &m_capture_buf.length);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	LOG_TIME_START(2) // capture
-	fimc_poll(&m_events_c);
-	index = fimc_v4l2_dqbuf(m_cam_fd);
-	fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_STREAM_PAUSE, 0);
-	LOGV("\nsnapshot dequeued buffer = %d snapshot_width = %d snapshot_height = %d\n\n",
-	     index, m_snapshot_width, m_snapshot_height);
+	ret = device->queueBuf(m_buf_type, 0);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	LOG_TIME_END(2)
+	ret = device->setStream(m_buf_type, true);
+	if (ret < 0) {
+		ERR(ret);
+		return -1;
+	}
 
-	LOGI("%s : calling memcpy from m_capture_buf", __func__);
-	memcpy(yuv_buf, (unsigned char*)m_capture_buf.start, m_snapshot_width * m_snapshot_height * 2);
-	LOG_TIME_START(5) // post
-	fimc_v4l2_streamoff(m_cam_fd);
-	LOG_TIME_END(5)
+	ret = device->pollDevice(POLLIN | POLLERR, 10000);
+	if (ret <= 0) {
+		device->setStream(m_buf_type, false);
+		ERR(ret);
+		return -1;
+	}
 
-	LOG_CAMERA("getSnapshotAndJpeg intervals : stopPreview(%lu), prepare(%lu),"
-		   " capture(%lu), memcpy(%lu), yuv2Jpeg(%lu), post(%lu)  us",
-		   LOG_TIME(0), LOG_TIME(1), LOG_TIME(2), LOG_TIME(3), LOG_TIME(4), LOG_TIME(5));
+	index = device->dequeueBuf(m_buf_type);
+
+	device->setCtrl(V4L2_CID_STREAM_PAUSE, 0);
+
+	LOGV("\nsnapshot dequeued buffer = %d snapshot_width = %d snapshot_height = %d",
+				index, m_snapshot_width, m_snapshot_height);
+
+	LOGI("%s: calling memcpy from m_capture_buf", __func__);
+	memcpy(yuv_buf, (unsigned char*)m_capture_buf.start, buf_size);
+
+	device->setStream(m_buf_type, false);
+
 	/* JPEG encoding */
 	JpegEncoder jpgEnc;
 	int inFormat = JPG_MODESEL_YCBCR;
@@ -1265,7 +1243,6 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf, unsigned char *jpeg_bu
 	return 0;
 }
 
-
 int SecCamera::setSnapshotSize(int width, int height)
 {
 	LOGV("%s(width(%d), height(%d))", __func__, width, height);
@@ -1281,15 +1258,11 @@ int SecCamera::getSnapshotSize(int *width, int *height, int *frame_size)
 	*width  = m_snapshot_width;
 	*height = m_snapshot_height;
 
-	int frame = 0;
+	*frame_size = get_buffer_size(m_snapshot_width,
+				m_snapshot_height, m_snapshot_v4lformat);
 
-	frame = m_frameSize(m_snapshot_v4lformat, m_snapshot_width, m_snapshot_height);
-
-	// set it big.
-	if (frame == 0)
-		frame = m_snapshot_width * m_snapshot_height * BPP;
-
-	*frame_size = frame;
+	if (*frame_size == 0)
+		return -1;
 
 	return 0;
 }
@@ -1335,26 +1308,41 @@ int SecCamera::getSnapshotPixelFormat(void)
 	return m_snapshot_v4lformat;
 }
 
-// ======================================================================
-// Settings
-
-int SecCamera::getCameraId(void)
+int SecCamera::endSnapshot(void)
 {
-	return m_camera_id;
+	int ret;
+
+	LOGI("%s :", __func__);
+
+	if (m_capture_buf.start) {
+		munmap(m_capture_buf.start, m_capture_buf.length);
+
+		LOGI("munmap():virt. addr %p size = %d\n",
+				m_capture_buf.start, m_capture_buf.length);
+
+		m_capture_buf.start = NULL;
+		m_capture_buf.length = 0;
+	}
+
+	return 0;
 }
 
-// -----------------------------------
+/*
+ * Controls
+ */
+
+/* Auto focus */
 
 int SecCamera::setAutofocus(void)
 {
 	LOGV("%s :", __func__);
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SET_AUTO_FOCUS, AUTO_FOCUS_ON) < 0) {
+	if (device->setCtrl(V4L2_CID_CAMERA_SET_AUTO_FOCUS, AUTO_FOCUS_ON) < 0) {
 		LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SET_AUTO_FOCUS", __func__);
 		return -1;
 	}
@@ -1366,7 +1354,7 @@ int SecCamera::getAutoFocusResult(void)
 {
 	int af_result;
 
-	af_result = fimc_v4l2_g_ctrl(m_cam_fd, V4L2_CID_CAMERA_AUTO_FOCUS_RESULT);
+	af_result = device->getCtrl(V4L2_CID_CAMERA_AUTO_FOCUS_RESULT);
 
 	LOGV("%s : returning %d", __func__, af_result);
 
@@ -1377,12 +1365,12 @@ int SecCamera::cancelAutofocus(void)
 {
 	LOGV("%s :", __func__);
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SET_AUTO_FOCUS, AUTO_FOCUS_OFF) < 0) {
+	if (device->setCtrl(V4L2_CID_CAMERA_SET_AUTO_FOCUS, AUTO_FOCUS_OFF) < 0) {
 		LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SET_AUTO_FOCUS", __func__);
 		return -1;
 	}
@@ -1390,7 +1378,7 @@ int SecCamera::cancelAutofocus(void)
 	return 0;
 }
 
-// -----------------------------------
+/* Frame rate */
 
 int SecCamera::setFrameRate(int frame_rate)
 {
@@ -1402,7 +1390,7 @@ int SecCamera::setFrameRate(int frame_rate)
 	if (m_params->capture.timeperframe.denominator != (unsigned)frame_rate) {
 		m_params->capture.timeperframe.denominator = frame_rate;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_FRAME_RATE, frame_rate) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_FRAME_RATE, frame_rate) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_FRAME_RATE", __func__);
 				return -1;
 			}
@@ -1412,18 +1400,18 @@ int SecCamera::setFrameRate(int frame_rate)
 	return 0;
 }
 
-// -----------------------------------
+/* Mirror */
 
 int SecCamera::setVerticalMirror(void)
 {
 	LOGV("%s :", __func__);
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_VFLIP, 0) < 0) {
+	if (device->setCtrl(V4L2_CID_VFLIP, 0) < 0) {
 		LOGE("ERR(%s):Fail on V4L2_CID_VFLIP", __func__);
 		return -1;
 	}
@@ -1435,12 +1423,12 @@ int SecCamera::setHorizontalMirror(void)
 {
 	LOGV("%s :", __func__);
 
-	if (m_cam_fd <= 0) {
+	if (!device) {
 		LOGE("ERR(%s):Camera was closed\n", __func__);
 		return -1;
 	}
 
-	if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_HFLIP, 0) < 0) {
+	if (device->setCtrl(V4L2_CID_HFLIP, 0) < 0) {
 		LOGE("ERR(%s):Fail on V4L2_CID_HFLIP", __func__);
 		return -1;
 	}
@@ -1448,7 +1436,7 @@ int SecCamera::setHorizontalMirror(void)
 	return 0;
 }
 
-// -----------------------------------
+/* White balance */
 
 int SecCamera::setWhiteBalance(int white_balance)
 {
@@ -1462,7 +1450,7 @@ int SecCamera::setWhiteBalance(int white_balance)
 	if (m_params->white_balance != white_balance) {
 		m_params->white_balance = white_balance;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_WHITE_BALANCE, white_balance) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_WHITE_BALANCE, white_balance) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_WHITE_BALANCE", __func__);
 				return -1;
 			}
@@ -1478,7 +1466,7 @@ int SecCamera::getWhiteBalance(void)
 	return m_params->white_balance;
 }
 
-// -----------------------------------
+/* Brightness */
 
 int SecCamera::setBrightness(int brightness)
 {
@@ -1494,7 +1482,7 @@ int SecCamera::setBrightness(int brightness)
 	if (m_params->brightness != brightness) {
 		m_params->brightness = brightness;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_BRIGHTNESS, brightness) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_BRIGHTNESS, brightness) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_BRIGHTNESS", __func__);
 				return -1;
 			}
@@ -1510,7 +1498,7 @@ int SecCamera::getBrightness(void)
 	return m_params->brightness;
 }
 
-// -----------------------------------
+/* Image effect */
 
 int SecCamera::setImageEffect(int image_effect)
 {
@@ -1524,7 +1512,7 @@ int SecCamera::setImageEffect(int image_effect)
 	if (m_params->effects != image_effect) {
 		m_params->effects = image_effect;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_EFFECT, image_effect) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_EFFECT, image_effect) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_EFFECT", __func__);
 				return -1;
 			}
@@ -1540,30 +1528,8 @@ int SecCamera::getImageEffect(void)
 	return m_params->effects;
 }
 
-// ======================================================================
-int SecCamera::setAntiBanding(int anti_banding)
-{
-	LOGV("%s(anti_banding(%d))", __func__, anti_banding);
+/* Scene mode */
 
-	if (anti_banding < ANTI_BANDING_AUTO || ANTI_BANDING_OFF < anti_banding) {
-		LOGE("ERR(%s):Invalid anti_banding (%d)", __func__, anti_banding);
-		return -1;
-	}
-
-	if (m_anti_banding != anti_banding) {
-		m_anti_banding = anti_banding;
-		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_ANTI_BANDING, anti_banding) < 0) {
-				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_ANTI_BANDING", __func__);
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-//======================================================================
 int SecCamera::setSceneMode(int scene_mode)
 {
 	LOGV("%s(scene_mode(%d))", __func__, scene_mode);
@@ -1576,7 +1542,7 @@ int SecCamera::setSceneMode(int scene_mode)
 	if (m_params->scene_mode != scene_mode) {
 		m_params->scene_mode = scene_mode;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SCENE_MODE, scene_mode) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_SCENE_MODE, scene_mode) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SCENE_MODE", __func__);
 				return -1;
 			}
@@ -1591,7 +1557,7 @@ int SecCamera::getSceneMode(void)
 	return m_params->scene_mode;
 }
 
-//======================================================================
+/* ISO */
 
 int SecCamera::setISO(int iso_value)
 {
@@ -1604,7 +1570,7 @@ int SecCamera::setISO(int iso_value)
 	if (m_params->iso != iso_value) {
 		m_params->iso = iso_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_ISO, iso_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_ISO, iso_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_ISO", __func__);
 				return -1;
 			}
@@ -1619,7 +1585,7 @@ int SecCamera::getISO(void)
 	return m_params->iso;
 }
 
-//======================================================================
+/* Contrast */
 
 int SecCamera::setContrast(int contrast_value)
 {
@@ -1633,7 +1599,7 @@ int SecCamera::setContrast(int contrast_value)
 	if (m_params->contrast != contrast_value) {
 		m_params->contrast = contrast_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_CONTRAST, contrast_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_CONTRAST, contrast_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_CONTRAST", __func__);
 				return -1;
 			}
@@ -1648,7 +1614,7 @@ int SecCamera::getContrast(void)
 	return m_params->contrast;
 }
 
-//======================================================================
+/* Saturation */
 
 int SecCamera::setSaturation(int saturation_value)
 {
@@ -1662,7 +1628,7 @@ int SecCamera::setSaturation(int saturation_value)
 	if (m_params->saturation != saturation_value) {
 		m_params->saturation = saturation_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SATURATION, saturation_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_SATURATION, saturation_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SATURATION", __func__);
 				return -1;
 			}
@@ -1677,7 +1643,7 @@ int SecCamera::getSaturation(void)
 	return m_params->saturation;
 }
 
-//======================================================================
+/* Sharpness */
 
 int SecCamera::setSharpness(int sharpness_value)
 {
@@ -1691,7 +1657,7 @@ int SecCamera::setSharpness(int sharpness_value)
 	if (m_params->sharpness != sharpness_value) {
 		m_params->sharpness = sharpness_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SHARPNESS, sharpness_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_SHARPNESS, sharpness_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SHARPNESS", __func__);
 				return -1;
 			}
@@ -1706,7 +1672,7 @@ int SecCamera::getSharpness(void)
 	return m_params->sharpness;
 }
 
-//======================================================================
+/* WDR */
 
 int SecCamera::setWDR(int wdr_value)
 {
@@ -1720,7 +1686,7 @@ int SecCamera::setWDR(int wdr_value)
 	if (m_wdr != wdr_value) {
 		m_wdr = wdr_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_WDR, wdr_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_WDR, wdr_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_WDR", __func__);
 				return -1;
 			}
@@ -1735,7 +1701,7 @@ int SecCamera::getWDR(void)
 	return m_wdr;
 }
 
-//======================================================================
+/* Antishake */
 
 int SecCamera::setAntiShake(int anti_shake)
 {
@@ -1749,7 +1715,7 @@ int SecCamera::setAntiShake(int anti_shake)
 	if (m_anti_shake != anti_shake) {
 		m_anti_shake = anti_shake;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_ANTI_SHAKE, anti_shake) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_ANTI_SHAKE, anti_shake) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_ANTI_SHAKE", __func__);
 				return -1;
 			}
@@ -1764,8 +1730,7 @@ int SecCamera::getAntiShake(void)
 	return m_anti_shake;
 }
 
-//======================================================================
-
+/* Metering */
 
 int SecCamera::setMetering(int metering_value)
 {
@@ -1779,7 +1744,7 @@ int SecCamera::setMetering(int metering_value)
 	if (m_params->metering != metering_value) {
 		m_params->metering = metering_value;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_METERING, metering_value) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_METERING, metering_value) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_METERING", __func__);
 				return -1;
 			}
@@ -1794,7 +1759,7 @@ int SecCamera::getMetering(void)
 	return m_params->metering;
 }
 
-//======================================================================
+/* JPEG quality */
 
 int SecCamera::setJpegQuality(int jpeg_quality)
 {
@@ -1808,7 +1773,7 @@ int SecCamera::setJpegQuality(int jpeg_quality)
 	if (m_jpeg_quality != jpeg_quality) {
 		m_jpeg_quality = jpeg_quality;
 		if (m_flag_camera_start && (m_camera_id == CAMERA_ID_BACK)) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAM_JPEG_QUALITY, jpeg_quality) < 0) {
+			if (device->setCtrl(V4L2_CID_CAM_JPEG_QUALITY, jpeg_quality) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAM_JPEG_QUALITY", __func__);
 				return -1;
 			}
@@ -1823,7 +1788,7 @@ int SecCamera::getJpegQuality(void)
 	return m_jpeg_quality;
 }
 
-//======================================================================
+/* Focus mode */
 
 int SecCamera::setFocusMode(int focus_mode)
 {
@@ -1838,7 +1803,7 @@ int SecCamera::setFocusMode(int focus_mode)
 		m_params->focus_mode = focus_mode;
 
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_FOCUS_MODE, focus_mode) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_FOCUS_MODE, focus_mode) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_FOCUS_MODE", __func__);
 				return -1;
 			}
@@ -1853,7 +1818,7 @@ int SecCamera::getFocusMode(void)
 	return m_params->focus_mode;
 }
 
-//======================================================================
+/* GPS coordinates (for EXIF) */
 
 int SecCamera::setGPSLatitude(const char *gps_latitude)
 {
@@ -1926,8 +1891,8 @@ int SecCamera::setGPSProcessingMethod(const char *gps_processing_method)
 	return 0;
 }
 
-//======================================================================
-
+/* Gamma */
+// 
 int SecCamera::setGamma(int gamma)
 {
 	LOGV("%s(gamma(%d))", __func__, gamma);
@@ -1940,7 +1905,7 @@ int SecCamera::setGamma(int gamma)
 	if (m_video_gamma != gamma) {
 		m_video_gamma = gamma;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SET_GAMMA, gamma) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_SET_GAMMA, gamma) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SET_GAMMA", __func__);
 				return -1;
 			}
@@ -1950,7 +1915,7 @@ int SecCamera::setGamma(int gamma)
 	return 0;
 }
 
-//======================================================================
+/* Slow AE */
 
 int SecCamera::setSlowAE(int slow_ae)
 {
@@ -1964,7 +1929,7 @@ int SecCamera::setSlowAE(int slow_ae)
 	if (m_slow_ae!= slow_ae) {
 		m_slow_ae = slow_ae;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_SET_SLOW_AE, slow_ae) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_SET_SLOW_AE, slow_ae) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_SET_SLOW_AE", __func__);
 				return -1;
 			}
@@ -1974,7 +1939,8 @@ int SecCamera::setSlowAE(int slow_ae)
 	return 0;
 }
 
-//======================================================================
+/* Recording size */
+
 int SecCamera::setRecordingSize(int width, int height)
 {
 	LOGV("%s(width(%d), height(%d))", __func__, width, height);
@@ -1985,7 +1951,7 @@ int SecCamera::setRecordingSize(int width, int height)
 	return 0;
 }
 
-//======================================================================
+/* Orientation (for EXIF) */
 
 int SecCamera::setExifOrientationInfo(int orientationInfo)
 {
@@ -2000,20 +1966,8 @@ int SecCamera::setExifOrientationInfo(int orientationInfo)
 	return 0;
 }
 
-//======================================================================
-int SecCamera::setBatchReflection()
-{
-	if (m_flag_camera_start) {
-		if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_BATCH_REFLECTION, 1) < 0) {
-			LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_BATCH_REFLECTION", __func__);
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 /*Video call*/
+
 int SecCamera::setVTmode(int vtmode)
 {
 	LOGV("%s(vtmode (%d))", __func__, vtmode);
@@ -2030,7 +1984,13 @@ int SecCamera::setVTmode(int vtmode)
 	return 0;
 }
 
+int SecCamera::getVTmode(void)
+{
+	return m_vtmode;
+}
+
 /* Camcorder fix fps */
+
 int SecCamera::setSensorMode(int sensor_mode)
 {
 	LOGV("%s(sensor_mode (%d))", __func__, sensor_mode);
@@ -2066,11 +2026,6 @@ int SecCamera::setShotMode(int shot_mode)
 	return 0;
 }
 
-int SecCamera::getVTmode(void)
-{
-	return m_vtmode;
-}
-
 int SecCamera::setBlur(int blur_level)
 {
 	LOGV("%s(level (%d))", __func__, blur_level);
@@ -2083,7 +2038,7 @@ int SecCamera::setBlur(int blur_level)
 	if (m_blur_level != blur_level) {
 		m_blur_level = blur_level;
 		if (m_flag_camera_start) {
-			if (fimc_v4l2_s_ctrl(m_cam_fd, V4L2_CID_CAMERA_VGA_BLUR, blur_level) < 0) {
+			if (device->setCtrl(V4L2_CID_CAMERA_VGA_BLUR, blur_level) < 0) {
 				LOGE("ERR(%s):Fail on V4L2_CID_CAMERA_VGA_BLUR", __func__);
 				return -1;
 			}
@@ -2101,11 +2056,13 @@ const __u8* SecCamera::getCameraSensorName(void)
 {
 	LOGV("%s", __func__);
 
-	return fimc_v4l2_enuminput(m_cam_fd, getCameraId());
+	if (!device)
+		return NULL;
+
+	return device->enumInput(getCameraId());
 }
 
-// ======================================================================
-// Jpeg
+/* JPEG */
 
 int SecCamera::setJpegThumbnailSize(int width, int height)
 {
@@ -2225,8 +2182,7 @@ void SecCamera::setExifChangedAttribute()
 
 	//2 0th IFD Exif Private Tags
 	//3 Exposure Time
-	int shutterSpeed = fimc_v4l2_g_ctrl(m_cam_fd,
-					    V4L2_CID_CAMERA_GET_SHT_TIME);
+	int shutterSpeed = device->getCtrl(V4L2_CID_CAMERA_GET_SHT_TIME);
 	/* TBD - front camera needs to be fixed to support this g_ctrl,
 	   it current returns a negative err value, so avoid putting
 	   odd value into exif for now */
@@ -2240,7 +2196,7 @@ void SecCamera::setExifChangedAttribute()
 	mExifInfo.exposure_time.den = (uint32_t)(1000000 / shutterSpeed);
 
 	//3 ISO Speed Rating
-	int iso = fimc_v4l2_g_ctrl(m_cam_fd, V4L2_CID_CAMERA_GET_ISO);
+	int iso = device->getCtrl(V4L2_CID_CAMERA_GET_ISO);
 	/* TBD - front camera needs to be fixed to support this g_ctrl,
 	   it current returns a negative err value, so avoid putting
 	   odd value into exif for now */
@@ -2313,7 +2269,7 @@ void SecCamera::setExifChangedAttribute()
 	}
 
 	//3 Flash
-	int flash = fimc_v4l2_g_ctrl(m_cam_fd, V4L2_CID_CAMERA_GET_FLASH_ONOFF);
+	int flash = device->getCtrl(V4L2_CID_CAMERA_GET_FLASH_ONOFF);
 	if (flash < 0)
 		mExifInfo.flash = EXIF_DEF_FLASH;
 	else
@@ -2401,33 +2357,7 @@ void SecCamera::setExifChangedAttribute()
 	mExifInfo.heightThumb = m_jpeg_thumbnail_height;
 }
 
-// ======================================================================
-// Conversions
-
-inline int SecCamera::m_frameSize(int format, int width, int height)
-{
-	int size = 0;
-
-	switch (format) {
-	case V4L2_PIX_FMT_YUV420:
-		size = (width * height * 3 / 2);
-		break;
-
-	case V4L2_PIX_FMT_YUV422P:
-	case V4L2_PIX_FMT_YUYV:
-	case V4L2_PIX_FMT_UYVY:
-		size = (width * height * 2);
-		break;
-
-	default :
-		LOGE("ERR(%s):Invalid V4L2 pixel format(%d)\n", __func__, format);
-	case V4L2_PIX_FMT_RGB565X:
-		size = (width * height * BPP);
-		break;
-	}
-
-	return size;
-}
+/* WTFs */
 
 status_t SecCamera::dump(int fd, const Vector<String16> &args)
 {
@@ -2439,9 +2369,5 @@ status_t SecCamera::dump(int fd, const Vector<String16> &args)
 	::write(fd, result.string(), result.size());
 	return NO_ERROR;
 }
-
-double SecCamera::jpeg_ratio = 0.7;
-int SecCamera::interleaveDataSize = 4261248;
-int SecCamera::jpegLineLength = 636;
 
 }; // namespace android
