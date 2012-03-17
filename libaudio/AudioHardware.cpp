@@ -80,6 +80,8 @@ const AudioHardware::AudioPinConfig AudioHardware::initialPinConfig[] = {
     { "Line Input 2 Differential", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "Line Input 3 Differential", AudioHardware::TYPE_BOOL, NULL, 1 },
     { "Line Input 4 Differential", AudioHardware::TYPE_BOOL, NULL, 1 },
+    { "MAX9877 Amp HP Playback Volume", AudioHardware::TYPE_INT, NULL, 80 },
+    { "MAX9877 Amp Speaker Playback Volume", AudioHardware::TYPE_INT, NULL, 80 },
     AUDIO_PIN_CONFIG_TERMINATOR,
 };
 
