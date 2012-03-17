@@ -563,6 +563,7 @@ status_t AudioHardware::setMode(int mode)
                 setAudioRoute(ROUTE_VOICE_OUT, 0);
                 setAudioRoute(ROUTE_VOICE_IN, 0);
                 setAudioRoute(ROUTE_OUTPUT, OUTPUT_RCV);
+                setAudioRoute(ROUTE_INPUT, 0);
                 setMasterVolume_l(mMasterVol);
                 ctl = mixer_get_control(mMixer, "GSM Send Switch", 0);
                 if (ctl)
