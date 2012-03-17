@@ -93,6 +93,7 @@ class V4L2Device {
 	int fd;
 	struct fimc_buffer buffers[MAX_BUFFERS];
 	sp<MemoryHeapBase> heap;
+	sp<MemoryHeapPmem> pmemHeap;
 
 	int allocateBuffers(int nr, size_t size);
 
@@ -125,6 +126,7 @@ public:
 	int setParam(enum v4l2_buf_type type,
 					struct v4l2_streamparm *streamparm);
 	sp<MemoryHeapBase> getHeap(void);
+	sp<MemoryBase> getMemory(int index);
 };
 
 V4L2Device::V4L2Device(const char *device) :
@@ -273,6 +275,7 @@ int V4L2Device::enumFormat(enum v4l2_buf_type type, unsigned int fmt)
 
 int V4L2Device::allocateBuffers(int nr_bufs, size_t buf_size)
 {
+	pmemHeap.clear();
 	if (heap != NULL) {
 		heap->dispose();
 		heap.clear();
@@ -289,6 +292,8 @@ int V4L2Device::allocateBuffers(int nr_bufs, size_t buf_size)
 	void *vaddr = heap->getBase();
 	if (vaddr == MAP_FAILED)
 		return -1;
+
+	pmemHeap = new MemoryHeapPmem(heap, 0);
 
 	int i = 0;
 	do {
@@ -486,7 +491,14 @@ int V4L2Device::setParam(enum v4l2_buf_type type,
 
 sp<MemoryHeapBase> V4L2Device::getHeap(void)
 {
-	return heap;
+	return pmemHeap;
+}
+
+sp<MemoryBase> V4L2Device::getMemory(int index)
+{
+	intptr_t addr = (intptr_t)buffers[index].start;
+	intptr_t base = (intptr_t)heap->getBase();
+	return new MemoryBase(pmemHeap, addr - base, buffers[index].length);
 }
 
 /******************************************************************************/
@@ -644,6 +656,14 @@ sp<MemoryHeapBase> SecCamera::getBufferHeap(void)
 		return NULL;
 
 	return device->getHeap();
+}
+
+sp<MemoryBase> SecCamera::getBuffer(int index)
+{
+	if (!device)
+		return NULL;
+
+	return device->getMemory(index);
 }
 
 int SecCamera::previewPoll(void)

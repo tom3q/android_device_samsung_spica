@@ -24,7 +24,6 @@
 #include <camera/CameraHardwareInterface.h>
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
-#include <binder/MemoryHeapPmem.h>
 #include <utils/threads.h>
 
 namespace android

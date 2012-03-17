@@ -42,6 +42,7 @@
 
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
+#include <binder/MemoryHeapPmem.h>
 
 namespace android
 {
@@ -259,6 +260,7 @@ public:
 	int		getPreviewMaxSize(int *width, int *height);
 	int		getPreviewPixelFormat(void);
 	sp<MemoryHeapBase> getBufferHeap(void);
+	sp<MemoryBase>	getBuffer(int index);
 
 	int		startRecord(void);
 	int		stopRecord(void);
