@@ -24,17 +24,26 @@
 #define THUMB_DUMP 0
 
 #include <utils/Log.h>
+#include <linux/android_pmem.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
 #include "JpegEncoder.h"
+
+typedef struct {
+    int     size;
+    unsigned int virt_addr;
+    unsigned int phys_addr;
+}s3c_jpeg_t;
 
 static const char ExifAsciiPrefix[] = { 0x41, 0x53, 0x43, 0x49, 0x49, 0x0, 0x0, 0x0 };
 
 namespace android {
 JpegEncoder::JpegEncoder() : available(false)
 {
-    mArgs.mmapped_addr = (char *)MAP_FAILED;
+    struct pmem_region region;
+
+    //mArgs.mmapped_addr = (char *)MAP_FAILED;
     mArgs.enc_param       = NULL;
     mArgs.thumb_enc_param = NULL;
 
@@ -44,17 +53,29 @@ JpegEncoder::JpegEncoder() : available(false)
         return;
     }
 
-    mArgs.mmapped_addr = (char *)mmap(0,
+    mPmemFd = open(JPG_PMEM_DEVICE, O_RDWR);
+    if (mPmemFd < 0) {
+        LOGE("Failed to open pmem device");
+        return;
+    }
+
+    mArgs.virt_baseaddr = (char *)mmap(0,
                                       JPG_TOTAL_BUF_SIZE,
                                       PROT_READ | PROT_WRITE,
                                       MAP_SHARED,
-                                      mDevFd,
+                                      mPmemFd,
                                       0);
 
-    if (mArgs.mmapped_addr == MAP_FAILED) {
+    if (mArgs.virt_baseaddr == MAP_FAILED) {
         LOGE("Failed to mmap");
         return;
     }
+
+    if (ioctl(mPmemFd, PMEM_GET_PHYS, &region) < 0) {
+        LOGE("Get pmem phys addr failed");
+        return;
+    }
+    mArgs.phys_baseaddr = (char *)region.offset;
 
     mArgs.enc_param = new jpg_enc_proc_param;
     if (mArgs.enc_param == NULL) {
@@ -81,8 +102,8 @@ JpegEncoder::JpegEncoder() : available(false)
 
 JpegEncoder::~JpegEncoder()
 {
-    if (mArgs.mmapped_addr != (char*)MAP_FAILED)
-        munmap(mArgs.mmapped_addr, JPG_TOTAL_BUF_SIZE);
+    if (mArgs.virt_baseaddr != (char*)MAP_FAILED)
+        munmap(mArgs.virt_baseaddr, JPG_TOTAL_BUF_SIZE);
 
     delete mArgs.enc_param;
 
@@ -90,6 +111,8 @@ JpegEncoder::~JpegEncoder()
 
     if (mDevFd > 0)
         close(mDevFd);
+    if (mPmemFd > 0)
+        close(mPmemFd);
 }
 
 jpg_return_status JpegEncoder::setConfig(jpeg_conf type, int32_t value)
@@ -120,7 +143,7 @@ jpg_return_status JpegEncoder::setConfig(jpeg_conf type, int32_t value)
         else
             mArgs.enc_param->quality = (image_quality_type_t)value;
         break;
-
+#if 0
     case JPEG_SET_ENCODE_IN_FORMAT:
         if (value != JPG_MODESEL_YCBCR && value != JPG_MODESEL_RGB) {
             ret = JPG_FAIL;
@@ -129,7 +152,7 @@ jpg_return_status JpegEncoder::setConfig(jpeg_conf type, int32_t value)
             mArgs.thumb_enc_param->in_format = (in_mode_t)value;
         }
         break;
-
+#endif
     case JPEG_SET_SAMPING_MODE:
         if (value != JPG_420 && value != JPG_422) {
             ret = JPG_FAIL;
@@ -166,6 +189,8 @@ jpg_return_status JpegEncoder::setConfig(jpeg_conf type, int32_t value)
 
 void* JpegEncoder::getInBuf(uint64_t size)
 {
+    s3c_jpeg_t s3c_jpeg_buf;
+
     if (!available)
         return NULL;
 
@@ -173,26 +198,37 @@ void* JpegEncoder::getInBuf(uint64_t size)
         LOGE("The buffer size requested is too large");
         return NULL;
     }
-    mArgs.in_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_FRMBUF, mArgs.mmapped_addr);
+    //mArgs.in_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_FRMBUF, mArgs.mmapped_addr);
+    mArgs.in_buf = mArgs.virt_baseaddr + IMG_MAIN_START;
+
+    s3c_jpeg_buf.virt_addr = (unsigned int)mArgs.virt_baseaddr + IMG_MAIN_START;
+    s3c_jpeg_buf.phys_addr = (unsigned int)mArgs.phys_baseaddr + IMG_MAIN_START;
+    ioctl(mDevFd, IOCTL_JPG_SET_FRMBUF, &s3c_jpeg_buf);
+
     return (void *)(mArgs.in_buf);
 }
 
-void* JpegEncoder::getOutBuf(uint64_t *size)
+void* JpegEncoder::getOutBuf(void)
 {
+    s3c_jpeg_t s3c_jpeg_buf;
+
     if (!available)
         return NULL;
 
-    if (mArgs.enc_param->file_size <= 0) {
-        LOGE("The buffer requested doesn't have data");
-        return NULL;
-    }
-    mArgs.out_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_STRBUF, mArgs.mmapped_addr);
-    *size = mArgs.enc_param->file_size;
+    //mArgs.out_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_STRBUF, mArgs.mmapped_addr);
+    mArgs.out_buf = mArgs.virt_baseaddr + JPG_MAIN_START;
+
+    s3c_jpeg_buf.virt_addr = (unsigned int)mArgs.virt_baseaddr + JPG_MAIN_START;
+    s3c_jpeg_buf.phys_addr = (unsigned int)mArgs.phys_baseaddr + JPG_MAIN_START;
+    ioctl(mDevFd, IOCTL_JPG_SET_STRBUF, &s3c_jpeg_buf);
+
     return (void *)(mArgs.out_buf);
 }
 
 void* JpegEncoder::getThumbInBuf(uint64_t size)
 {
+    s3c_jpeg_t s3c_jpeg_buf;
+
     if (!available)
         return NULL;
 
@@ -200,25 +236,34 @@ void* JpegEncoder::getThumbInBuf(uint64_t size)
         LOGE("The buffer size requested is too large");
         return NULL;
     }
-    mArgs.in_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_FRMBUF, mArgs.mmapped_addr);
+    //mArgs.in_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_FRMBUF, mArgs.mmapped_addr);
+    mArgs.in_thumb_buf = mArgs.virt_baseaddr + IMG_THUMB_START;
+
+    s3c_jpeg_buf.virt_addr = (unsigned int)mArgs.virt_baseaddr + IMG_THUMB_START;
+    s3c_jpeg_buf.phys_addr = (unsigned int)mArgs.phys_baseaddr + IMG_THUMB_START;
+    ioctl(mDevFd, IOCTL_JPG_SET_THUMB_FRMBUF, &s3c_jpeg_buf);
+
     return (void *)(mArgs.in_thumb_buf);
 }
 
-void* JpegEncoder::getThumbOutBuf(uint64_t *size)
+void* JpegEncoder::getThumbOutBuf(void)
 {
+    s3c_jpeg_t s3c_jpeg_buf;
+
     if (!available)
         return NULL;
 
-    if (mArgs.thumb_enc_param->file_size <= 0) {
-        LOGE("The buffer requested doesn't have data");
-        return NULL;
-    }
-    mArgs.out_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_STRBUF, mArgs.mmapped_addr);
-    *size = mArgs.thumb_enc_param->file_size;
+    //mArgs.out_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_STRBUF, mArgs.mmapped_addr);
+    mArgs.out_thumb_buf = mArgs.virt_baseaddr + JPG_THUMB_START;
+
+    s3c_jpeg_buf.virt_addr = (unsigned int)mArgs.virt_baseaddr + JPG_THUMB_START;
+    s3c_jpeg_buf.phys_addr = (unsigned int)mArgs.phys_baseaddr + JPG_THUMB_START;
+    ioctl(mDevFd, IOCTL_JPG_SET_THUMB_STRBUF, &s3c_jpeg_buf);
+
     return (void *)(mArgs.out_thumb_buf);
 }
 
-jpg_return_status JpegEncoder::encode(unsigned int *size, exif_attribute_t *exifInfo)
+jpg_return_status JpegEncoder::encode(unsigned int *size, exif_attribute_t *exifInfo, unsigned int *outbuf_size)
 {
     if (!available)
         return JPG_FAIL;
@@ -234,13 +279,15 @@ jpg_return_status JpegEncoder::encode(unsigned int *size, exif_attribute_t *exif
         return ret;
 
     param->enc_type = JPG_MAIN;
-    ret = (jpg_return_status)ioctl(mDevFd, IOCTL_JPG_ENCODE, &mArgs);
-    if (ret != JPG_SUCCESS) {
+    ret = (jpg_return_status)ioctl(mDevFd, IOCTL_JPG_ENCODE, mArgs.enc_param);
+    if (ret < 0) {
         LOGE("Failed to encode main image");
         return ret;
     }
 
-    mArgs.out_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_STRBUF, mArgs.mmapped_addr);
+    *outbuf_size = param->file_size;
+
+    //mArgs.out_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_STRBUF, mArgs.mmapped_addr);
 
     if (exifInfo) {
         unsigned int thumbLen, exifLen;
@@ -309,6 +356,8 @@ jpg_return_status JpegEncoder::encodeThumbImg(unsigned int *size, bool useMain)
 
     jpg_return_status ret = JPG_FAIL;
     jpg_enc_proc_param *param = mArgs.thumb_enc_param;
+    mArgs.in_thumb_buf = (char*)getThumbInBuf(param->width*param->height*2);
+    mArgs.out_thumb_buf = (char*)getThumbOutBuf();
 
     if (useMain) {
         mArgs.in_thumb_buf = (char *)getThumbInBuf(param->width*param->height*2);
@@ -332,13 +381,13 @@ jpg_return_status JpegEncoder::encodeThumbImg(unsigned int *size, bool useMain)
         return JPG_FAIL;
 
     mArgs.enc_param->enc_type = JPG_THUMBNAIL;
-    ret = (jpg_return_status)ioctl(mDevFd, IOCTL_JPG_ENCODE, &mArgs);
-    if (ret != JPG_SUCCESS) {
+    ret = (jpg_return_status)ioctl(mDevFd, IOCTL_JPG_ENCODE, mArgs.thumb_enc_param);
+    if (ret < 0) {
         LOGE("Failed to encode for thumbnail");
         return JPG_FAIL;
     }
 
-    mArgs.out_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_STRBUF, mArgs.mmapped_addr);
+    //mArgs.out_thumb_buf = (char *)ioctl(mDevFd, IOCTL_JPG_GET_THUMB_STRBUF, mArgs.mmapped_addr);
 
 #if THUMB_DUMP
     FILE *fout = NULL;
