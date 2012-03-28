@@ -1034,8 +1034,8 @@ int SecCamera::getExif(unsigned char *pExifDst, unsigned char *pThumbSrc)
 			break;
 		}
 
-		if (jpgEnc.setConfig(JPEG_SET_ENCODE_IN_FORMAT, inFormat) != JPG_SUCCESS)
-			return -1;
+		//if (jpgEnc.setConfig(JPEG_SET_ENCODE_IN_FORMAT, inFormat) != JPG_SUCCESS)
+		//	return -1;
 
 		if (jpgEnc.setConfig(JPEG_SET_SAMPING_MODE, outFormat) != JPG_SUCCESS)
 			return -1;
@@ -1055,10 +1055,12 @@ int SecCamera::getExif(unsigned char *pExifDst, unsigned char *pThumbSrc)
 		if (pInBuf == NULL)
 			return -1;
 		memcpy(pInBuf, pThumbSrc, thumbSrcSize);
+		jpgEnc.getOutBuf();
 
 		unsigned int thumbSize;
+		unsigned int outbuf_size;
 
-		jpgEnc.encode(&thumbSize, NULL);
+		jpgEnc.encode(&thumbSize, NULL, &outbuf_size);
 
 		LOGV("%s : enableThumb set to true", __func__);
 		mExifInfo.enableThumb = true;
@@ -1214,8 +1216,8 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf,
 		break;
 	}
 
-	if (jpgEnc.setConfig(JPEG_SET_ENCODE_IN_FORMAT, inFormat) != JPG_SUCCESS)
-		LOGE("[JPEG_SET_ENCODE_IN_FORMAT] Error\n");
+	//if (jpgEnc.setConfig(JPEG_SET_ENCODE_IN_FORMAT, inFormat) != JPG_SUCCESS)
+	//	LOGE("[JPEG_SET_ENCODE_IN_FORMAT] Error\n");
 
 	if (jpgEnc.setConfig(JPEG_SET_SAMPING_MODE, outFormat) != JPG_SUCCESS)
 		LOGE("[JPEG_SET_SAMPING_MODE] Error\n");
@@ -1247,11 +1249,11 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf,
 	}
 	memcpy(pInBuf, yuv_buf, snapshot_size);
 
-	setExifChangedAttribute();
-	jpgEnc.encode(output_size, &mExifInfo);
+	unsigned int outbuf_size;
+	unsigned char *pOutBuf = (unsigned char *)jpgEnc.getOutBuf();
 
-	uint64_t outbuf_size;
-	unsigned char *pOutBuf = (unsigned char *)jpgEnc.getOutBuf(&outbuf_size);
+	setExifChangedAttribute();
+	jpgEnc.encode(output_size, NULL, &outbuf_size);
 
 	if (pOutBuf == NULL) {
 		LOGE("JPEG output buffer is NULL!!\n");

@@ -28,18 +28,14 @@
 #include "Exif.h"
 
 namespace android {
-#define MAX_JPG_WIDTH                   800
-#define MAX_JPG_HEIGHT                  480
+#define MAX_JPG_WIDTH                   2048
+#define MAX_JPG_HEIGHT                  1536
 #define MAX_JPG_RESOLUTION              (MAX_JPG_WIDTH * MAX_JPG_HEIGHT)
 
 #define MAX_JPG_THUMBNAIL_WIDTH         320
 #define MAX_JPG_THUMBNAIL_HEIGHT        240
 #define MAX_JPG_THUMBNAIL_RESOLUTION    (MAX_JPG_THUMBNAIL_WIDTH *  \
                                             MAX_JPG_THUMBNAIL_HEIGHT)
-
-#define MAX_RGB_WIDTH                   800
-#define MAX_RGB_HEIGHT                  480
-#define MAX_RGB_RESOLUTION              (MAX_RGB_WIDTH * MAX_RGB_HEIGHT)
 
 /*******************************************************************************/
 /* define JPG & image memory */
@@ -52,14 +48,11 @@ namespace android {
         ((MAX_JPG_RESOLUTION * 3) / PAGE_SIZE + 1) * PAGE_SIZE
 #define JPG_FRAME_THUMB_BUF_SIZE    \
         ((MAX_JPG_THUMBNAIL_RESOLUTION * 3) / PAGE_SIZE + 1) * PAGE_SIZE
-#define JPG_RGB_BUF_SIZE    \
-        ((MAX_RGB_RESOLUTION * 4) / PAGE_SIZE + 1) * PAGE_SIZE
 
 #define JPG_TOTAL_BUF_SIZE  (JPG_STREAM_BUF_SIZE + \
                              JPG_STREAM_THUMB_BUF_SIZE + \
                              JPG_FRAME_BUF_SIZE + \
-                             JPG_FRAME_THUMB_BUF_SIZE + \
-                             JPG_RGB_BUF_SIZE)
+                             JPG_FRAME_THUMB_BUF_SIZE)
 
 #define JPG_MAIN_START      0x00
 #define JPG_THUMB_START     JPG_STREAM_BUF_SIZE
@@ -68,16 +61,14 @@ namespace android {
 /*******************************************************************************/
 
 #define JPG_DRIVER_NAME     "/dev/s3c-jpg"
+#define JPG_PMEM_DEVICE		"/dev/pmem_gpu1"
 
-#define JPEG_IOCTL_MAGIC                'J'
-#define IOCTL_JPG_DECODE                _IO(JPEG_IOCTL_MAGIC, 1)
-#define IOCTL_JPG_ENCODE                _IO(JPEG_IOCTL_MAGIC, 2)
-#define IOCTL_JPG_GET_STRBUF            _IO(JPEG_IOCTL_MAGIC, 3)
-#define IOCTL_JPG_GET_FRMBUF            _IO(JPEG_IOCTL_MAGIC, 4)
-#define IOCTL_JPG_GET_THUMB_STRBUF      _IO(JPEG_IOCTL_MAGIC, 5)
-#define IOCTL_JPG_GET_THUMB_FRMBUF      _IO(JPEG_IOCTL_MAGIC, 6)
-#define IOCTL_JPG_GET_PHY_FRMBUF        _IO(JPEG_IOCTL_MAGIC, 7)
-#define IOCTL_JPG_GET_PHY_THUMB_FRMBUF  _IO(JPEG_IOCTL_MAGIC, 8)
+#define IOCTL_JPG_DECODE				0x00000002
+#define IOCTL_JPG_ENCODE				0x00000003
+#define IOCTL_JPG_SET_STRBUF			0x00000004
+#define IOCTL_JPG_SET_FRMBUF			0x00000005
+#define IOCTL_JPG_SET_THUMB_STRBUF		0x0000000A
+#define IOCTL_JPG_SET_THUMB_FRMBUF		0x0000000B
 
 typedef enum {
     JPEG_SET_ENCODE_WIDTH,
@@ -153,29 +144,23 @@ typedef struct {
 typedef struct {
     sample_mode_t       sample_mode;
     encode_type_t       enc_type;
-    in_mode_t           in_format;
+    //in_mode_t           in_format;
     image_quality_type_t quality;
     uint32_t            width;
     uint32_t            height;
     uint32_t            data_size;
     uint32_t            file_size;
-    uint32_t            set_framebuf;
+    //uint32_t            set_framebuf;
 } jpg_enc_proc_param;
 
 typedef struct {
     char    *in_buf;
-    char    *phy_in_buf;
-    int     in_buf_size;
     char    *out_buf;
-    char    *phy_out_buf;
-    int     out_buf_size;
     char    *in_thumb_buf;
-    char    *phy_in_thumb_buf;
-    int     in_thumb_buf_size;
     char    *out_thumb_buf;
-    char    *phy_out_thumb_buf;
-    int     out_thumb_buf_size;
-    char    *mmapped_addr;
+    char    *virt_baseaddr;
+    char    *phys_baseaddr;
+    //char    *mmapped_addr;
     jpg_dec_proc_param  *dec_param;
     jpg_enc_proc_param  *enc_param;
     jpg_enc_proc_param  *thumb_enc_param;
@@ -189,10 +174,10 @@ public:
     int openHardware();
     jpg_return_status setConfig(jpeg_conf type, int32_t value);
     void *getInBuf(uint64_t size);
-    void *getOutBuf(uint64_t *size);
+    void *getOutBuf(void);
     void *getThumbInBuf(uint64_t size);
-    void *getThumbOutBuf(uint64_t *size);
-    jpg_return_status encode(unsigned int *size, exif_attribute_t *exifInfo);
+    void *getThumbOutBuf(void);
+    jpg_return_status encode(unsigned int *size, exif_attribute_t *exifInfo, unsigned int *outbuf_size);
     jpg_return_status encodeThumbImg(unsigned int *size, bool useMain = true);
     jpg_return_status makeExif(unsigned char *exifOut,
                                exif_attribute_t *exifIn,
@@ -231,6 +216,7 @@ private:
                                  unsigned int *offset,
                                  unsigned char *start);
     int mDevFd;
+    int mPmemFd;
     jpg_args mArgs;
 
     bool available;
