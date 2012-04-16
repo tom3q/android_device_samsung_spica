@@ -597,7 +597,7 @@ int SecCamera::openCamera(int index)
 
 	LOGD("%s: V4L2 device opened.", __func__);
 
-	ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE);
+	ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE_MPLANE);
 	if (ret < 0) {
 		ERR(ret);
 		goto error;
@@ -796,7 +796,7 @@ int SecCamera::getPreview()
 
 		stopPreview();
 
-		ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE);
+		ret = device->queryCap(V4L2_CAP_VIDEO_CAPTURE_MPLANE);
 		if (ret < 0) {
 			ERR(ret);
 			return -1;
