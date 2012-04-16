@@ -781,6 +781,8 @@ int SecCamera::stopPreview(void)
 		return -1;
 	}
 
+	device->reqBufs(m_buf_type, 0, 0);
+
 	m_flag_camera_start = 0;
 
 	return ret;
