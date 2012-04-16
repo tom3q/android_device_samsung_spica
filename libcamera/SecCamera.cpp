@@ -57,7 +57,7 @@ static int get_pixel_depth(unsigned int fmt)
 		depth = 12;
 		break;
 
-	case V4L2_PIX_FMT_RGB565X:
+	case V4L2_PIX_FMT_RGB565:
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_YVYU:
 	case V4L2_PIX_FMT_UYVY:
@@ -511,7 +511,7 @@ sp<MemoryBase> V4L2Device::getMemory(int index)
 
 SecCamera::SecCamera() :
 	m_camera_id(CAMERA_ID_BACK),
-	m_preview_v4lformat(V4L2_PIX_FMT_RGB565X),
+	m_preview_v4lformat(V4L2_PIX_FMT_RGB565),
 	m_preview_width      (0),
 	m_preview_height     (0),
 	m_preview_max_width  (MAX_BACK_CAMERA_PREVIEW_WIDTH),
@@ -842,8 +842,8 @@ int SecCamera::setPreviewSize(int width, int height, int pixel_format)
 		LOGV("PreviewFormat:V4L2_PIX_FMT_YUV422P");
 	else if (v4lpixelformat == V4L2_PIX_FMT_YUYV)
 		LOGV("PreviewFormat:V4L2_PIX_FMT_YUYV");
-	else if (v4lpixelformat == V4L2_PIX_FMT_RGB565X)
-		LOGV("PreviewFormat:V4L2_PIX_FMT_RGB565X");
+	else if (v4lpixelformat == V4L2_PIX_FMT_RGB565)
+		LOGV("PreviewFormat:V4L2_PIX_FMT_RGB565");
 	else
 		LOGV("PreviewFormat:UnknownFormat");
 #endif
@@ -1132,8 +1132,8 @@ int SecCamera::getSnapshotAndJpeg(unsigned char *yuv_buf,
 		LOGV("SnapshotFormat:V4L2_PIX_FMT_YUYV");
 	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_UYVY)
 		LOGV("SnapshotFormat:V4L2_PIX_FMT_UYVY");
-	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565X)
-		LOGV("SnapshotFormat:V4L2_PIX_FMT_RGB565X");
+	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565)
+		LOGV("SnapshotFormat:V4L2_PIX_FMT_RGB565");
 	else
 		LOGV("SnapshotFormat:UnknownFormat");
 #endif
@@ -1315,8 +1315,8 @@ int SecCamera::setSnapshotPixelFormat(int pixel_format)
 		LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_YUYV", __func__);
 	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_UYVY)
 		LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_UYVY", __func__);
-	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565X)
-		LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_RGB565X", __func__);
+	else if (m_snapshot_v4lformat == V4L2_PIX_FMT_RGB565)
+		LOGD("%s : SnapshotFormat:V4L2_PIX_FMT_RGB565", __func__);
 	else
 		LOGD("SnapshotFormat:UnknownFormat");
 #endif

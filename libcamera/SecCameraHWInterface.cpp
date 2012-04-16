@@ -1315,7 +1315,7 @@ static androidToV4l2 androidToV4l2Format[] = {
 	/* Android standard */
 	{ CameraParameters::PIXEL_FORMAT_YUV420P, V4L2_PIX_FMT_YUV420 },
 	{ CameraParameters::PIXEL_FORMAT_YUV422I, V4L2_PIX_FMT_YUYV },
-	{ CameraParameters::PIXEL_FORMAT_RGB565, V4L2_PIX_FMT_RGB565X },
+	{ CameraParameters::PIXEL_FORMAT_RGB565, V4L2_PIX_FMT_RGB565 },
 	{ CameraParameters::PIXEL_FORMAT_JPEG, V4L2_PIX_FMT_YUYV },
 	/* Custom */
 	{ "yuv422p", V4L2_PIX_FMT_YUV422P },
@@ -1360,8 +1360,8 @@ int CameraHardwareSec::setPreviewFormat(int width, int height,
 	}
 
 	if (new_preview_format == -1) {
-		new_preview_format = V4L2_PIX_FMT_RGB565X;
-		LOGW("%s: Unsupported preview format %s, defaulting to RGB565X",
+		new_preview_format = V4L2_PIX_FMT_RGB565;
+		LOGW("%s: Unsupported preview format %s, defaulting to RGB565",
 					__func__, format);
 	}
 
@@ -1410,8 +1410,8 @@ int CameraHardwareSec::setPictureFormat(const char *format)
 	}
 
 	if (new_picture_format == -1) {
-		new_picture_format = V4L2_PIX_FMT_RGB565X;
-		LOGW("%s: Unsupported preview format %s, defaulting to RGB565X",
+		new_picture_format = V4L2_PIX_FMT_RGB565;
+		LOGW("%s: Unsupported preview format %s, defaulting to RGB565",
 					__func__, format);
 	}
 
