@@ -159,9 +159,9 @@ void CameraHardwareSec::initDefaultParameters(int cameraId)
 	int snapshot_max_height = 0;
 
 	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES,
-	      "1024x768,720x480,640x480,352x288,176x144");
+	      "1024x768,640x480,352x288,176x144");
 	p.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES,
-	      "2048x1536,1600x1200,1280x960");
+	      "2048x1536,1600x1200,1280x960,1024x768,640x480");
 
 	p.getSupportedPreviewSizes(mSupportedPreviewSizes);
 
