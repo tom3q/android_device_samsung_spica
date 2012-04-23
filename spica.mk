@@ -75,7 +75,6 @@ PRODUCT_PACKAGES += \
     gps.spica \
     sensors.spica \
     libs3cjpeg \
-    libcamera \
     bdaddr_read \
     show_logo \
     copybit.spica \
@@ -85,6 +84,10 @@ PRODUCT_PACKAGES += \
     libsecril-client.so \
     efsd \
     libGLES_fimg
+
+# Libcamera
+#PRODUCT_PACKAGES += \
+#   libcamera
 
 # These are the hardware-specific features
 PRODUCT_COPY_FILES += \
