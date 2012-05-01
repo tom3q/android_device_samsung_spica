@@ -77,6 +77,7 @@ PRODUCT_PACKAGES += \
     gps.spica \
     sensors.spica \
     bdaddr_read \
+    crashguard \
     show_logo \
     copybit.spica \
     gralloc.spica \
