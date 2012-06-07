@@ -17,6 +17,11 @@ LOCAL_PATH := $(call my-dir)
 ifeq ($(TARGET_DEVICE),spica)
 
 include $(CLEAR_VARS)
+LOCAL_SRC_FILES := s3c6410-keypad.kcm
+LOCAL_MODULE_TAGS := optional
+include $(BUILD_KEY_CHAR_MAP)
+
+include $(CLEAR_VARS)
 LOCAL_SRC_FILES := samsung-keypad.kcm
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_KEY_CHAR_MAP)
