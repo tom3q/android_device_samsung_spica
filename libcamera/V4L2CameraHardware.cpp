@@ -153,7 +153,8 @@ void V4L2CameraHardware::initDefaultParameters(int cameraId)
 		LOGE("getSnapshotMaxSize fail (%d / %d) \n",
 		     snapshot_max_width, snapshot_max_height);
 
-	p.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);
+	//p.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);
+	p.setPreviewFormat(CameraParameters::PIXEL_FORMAT_RGB565);
 	p.setPreviewSize(preview_max_width, preview_max_height);
 
 	p.setPictureFormat(CameraParameters::PIXEL_FORMAT_JPEG);
@@ -166,14 +167,14 @@ void V4L2CameraHardware::initDefaultParameters(int cameraId)
 	String8 parameterString;
 
 	parameterString = CameraParameters::PIXEL_FORMAT_RGB565;
-	parameterString.append(",");
-	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV422I);
-	parameterString.append(",");
-	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV420P);
-	parameterString.append(",");
-	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV420SP);
-	parameterString.append(",");
-	parameterString.append("yvu420");
+//	parameterString.append(",");
+// 	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV422I);
+// 	parameterString.append(",");
+// 	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV420P);
+// 	parameterString.append(",");
+// 	parameterString.append(CameraParameters::PIXEL_FORMAT_YUV420SP);
+// 	parameterString.append(",");
+// 	parameterString.append("yvu420");
 	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS,
 						parameterString.string());
 
@@ -1013,13 +1014,13 @@ int V4L2CameraHardware::setPreviewFormat(int width, int height,
 	int new_preview_format = -1;
 	int ret;
 
-	for (unsigned i = 0; i < NELEM(androidToV4l2Format); ++i) {
-		ret = strcmp(androidToV4l2Format[i].android, format);
-		if (!ret) {
-			new_preview_format = androidToV4l2Format[i].v4l2;
-			break;
-		}
-	}
+// 	for (unsigned i = 0; i < NELEM(androidToV4l2Format); ++i) {
+// 		ret = strcmp(androidToV4l2Format[i].android, format);
+// 		if (!ret) {
+// 			new_preview_format = androidToV4l2Format[i].v4l2;
+// 			break;
+// 		}
+// 	}
 
 	if (new_preview_format == -1) {
 		new_preview_format = V4L2_PIX_FMT_RGB565;
