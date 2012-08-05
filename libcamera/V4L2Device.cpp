@@ -19,6 +19,7 @@
 #define LOG_NDEBUG 0
 #define LOG_TAG "V4L2Device"
 
+#include <dirent.h>
 #include <utils/Log.h>
 #include "V4L2Device.h"
 #include "utils.h"
@@ -88,10 +89,53 @@ V4L2Device::V4L2Device(const char *device) :
 	emptyAllocation(0, 0, 0)
 {
 	TRACE();
+	const char sysfsPath[] = "/sys/class/video4linux";
+	char path[PATH_MAX];
+	char name[32];
+	bool found = false;
 
-	fd = open(device, O_RDWR);
+	DIR *d = opendir(sysfsPath);
+	if (d == NULL) {
+		ERR("error opening %s (%s)", sysfsPath, strerror(errno));
+		return;
+	}
+
+	struct dirent* de;
+	while ((de = readdir(d)) != NULL) {
+		if (de->d_name[0] == '.')
+			continue;
+
+		snprintf(path, sizeof(path), "%s/%s/name",
+							sysfsPath, de->d_name);
+
+		DBG("Enumerating %s", path);
+
+		FILE *f = fopen(path, "r");
+		if (!f)
+			continue;
+
+		name[0] = '\0';
+		fscanf(f, "%s", name);
+		fclose(f);
+
+		DBG("Enumerated %s at %s", name, path);
+
+		if (!strcmp(device, name)) {
+			snprintf(path, sizeof(path), "/dev/%s", de->d_name);
+			found = true;
+			break;
+		}
+	}
+	closedir(d);
+
+	if (!found) {
+		ERR("device %s not found", device);
+		return;
+	}
+
+	fd = open(path, O_RDWR);
 	if (fd < 0) {
-		ERR("failed to open %s", device);
+		ERR("failed to open %s", path);
 		return;
 	}
 

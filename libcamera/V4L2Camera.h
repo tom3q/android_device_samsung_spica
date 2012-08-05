@@ -78,8 +78,9 @@ namespace android {
 #define BACK_CAMERA_THUMBNAIL_BPP	JOIN(BACK_CAM,_THUMBNAIL_BPP)
 #define BACK_CAMERA_FOCAL_LENGTH	JOIN(BACK_CAM,_FOCAL_LENGTH)
 
-#define JPEG_DEV_NAME			"/dev/video0"
-#define CAMERA_DEV_NAME			"/dev/video3"
+#define JPEG_DEV_NAME			"s3c-jpeg.enc"
+#define CAMERA_DEV_NAME			"s3c-fimc.0.capture"
+
 #define PMEM_DEV_NAME			"/dev/pmem_gpu1"
 
 /* One currently being processed and four for FIMC */
