@@ -32,11 +32,6 @@
 #define MEM_SIZE	(1024*1024)
 #define DUMP_FILE	"/data/ram_dump"
 
-static void signal_handler(int arg)
-{
-	unlink(GUARD_FILE);
-}
-
 static void dump_ram_console(void)
 {
 	int mem_fd, out_fd;
@@ -97,19 +92,13 @@ int main(int argc, char **argv)
 
 	LOGI("Starting CrashGuard...");
 
-	fd = open(GUARD_FILE, O_RDWR | O_CREAT | O_EXCL);
+	fd = open(GUARD_FILE, O_RDONLY);
 	if (fd < 0)
 		dump_ram_console();
 	else
 		close(fd);
 
-	signal(SIGTERM, signal_handler);
-	signal(SIGABRT, signal_handler);
-	signal(SIGQUIT, signal_handler);
-
-	pause();
-
-	LOGI("CrashGuard terminating.");
+	unlink(GUARD_FILE);
 
 	return 0;
 }
