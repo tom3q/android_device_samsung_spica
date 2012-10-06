@@ -961,6 +961,8 @@ int V4L2Camera::convertFrame(V4L2Buffer *buffer, void *convBuffer,
  */
 
 /* Auto focus */
+#define AF_RETRIES	300
+#define AF_SLEEP	50000
 
 int V4L2Camera::setAutofocus(void)
 {
@@ -971,23 +973,35 @@ int V4L2Camera::setAutofocus(void)
 		return -1;
 	}
 
-	autoFocusDone = true;
 	if (device->setCtrl(V4L2_CID_FOCUS_AUTO, 0) < 0)
-		autoFocusDone = false;
+		return -1;
 
 	return 0;
 }
 
 int V4L2Camera::getAutoFocusResult(void)
 {
+	int result = 0;
+	int retries = AF_RETRIES;
+
 	TRACE();
-	DBG("autoFocusDone = %d", autoFocusDone);
-	return autoFocusDone;
+
+	do {
+		if (device->getCtrl(V4L2_CID_S5K4CA_FOCUS_RESULT, &result) < 0)
+			return -1;
+		usleep(AF_SLEEP);
+	} while (--retries && result == 1);
+
+	return result;
 }
 
 int V4L2Camera::cancelAutofocus(void)
 {
 	TRACE();
+
+	if (device->setCtrl(V4L2_CID_S5K4CA_FOCUS_CANCEL, 0) < 0)
+		return -1;
+
 	return 0;
 }
 

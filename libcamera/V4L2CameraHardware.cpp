@@ -673,11 +673,11 @@ int V4L2CameraHardware::autoFocusThread()
 
 	af_status = mV4L2Camera->getAutoFocusResult();
 
-	if (af_status == 0x01) {
+	if (af_status == 0x02) {
 		LOGV("%s : AF Success!!", __func__);
 		if (mMsgEnabled & CAMERA_MSG_FOCUS)
 			mNotifyCb(CAMERA_MSG_FOCUS, true, 0, mCallbackCookie);
-	} else if (af_status == 0x02) {
+	} else if (af_status == 0x00) {
 		LOGV("%s : AF Cancelled !!", __func__);
 		if (mMsgEnabled & CAMERA_MSG_FOCUS) {
 			/* CAMERA_MSG_FOCUS only takes a bool.  true for
