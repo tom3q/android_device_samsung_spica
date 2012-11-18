@@ -81,6 +81,7 @@ static void dump_ram_console(void)
 	close(mem_fd);
 	close(out_fd);
 
+	unlink(DUMP_FILE ".gz");
 	system("gzip " DUMP_FILE);
 
 	LOGI("Dump written to %s.gz.", DUMP_FILE);
