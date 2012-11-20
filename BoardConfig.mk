@@ -96,6 +96,10 @@ WIFI_DRIVER_FW_STA_PATH := "/system/etc/fw_bcm4325.bin"
 WIFI_DRIVER_MODULE_NAME := "bcmdhd"
 WIFI_DRIVER_MODULE_ARG := "firmware_path=/system/etc/fw_bcm4325.bin nvram_path=/system/etc/nvram.txt dhd_watchdog_ms=10 dhd_poll=1"
 
+# Sensors
+SOMC_CFG_SENSORS_ACCEL_BMA150_INPUT := yes
+SOMC_CFG_SENSORS_COMPASS_AK8973_AKMTASTIC := yes
+
 # GPS
 BOARD_GPS_LIBRARIES := libsecgps libsecril-client
 BOARD_USES_GPSSHIM := true

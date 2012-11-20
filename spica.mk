@@ -77,7 +77,7 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     lights.spica \
     gps.spica \
-    sensors.spica \
+    sensors.default \
     bdaddr_read \
     crashguard \
     show_logo \
