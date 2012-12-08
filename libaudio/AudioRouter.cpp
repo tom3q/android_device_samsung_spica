@@ -249,6 +249,8 @@ static const AudioRouter::AudioRouteConfig voiceInRouteConfigs[] = {
 
 static const AudioRouter::AudioPinConfig voiceOutRcvPinConfigs[] = {
 	PIN_CONFIG_BOOL("Line Input 4 Differential", 1),
+	PIN_CONFIG_BOOL("LOUT1 Mixer DACL", 1),
+	PIN_CONFIG_BOOL("ROUT1 Mixer DACR", 1),
 	PIN_CONFIG_BOOL("LOUT1 Mixer LINL4", 1),
 	PIN_CONFIG_BOOL("ROUT1 Mixer RINR4", 1),
 	PIN_CONFIG_BOOL("GSM Receive Switch", 1),
@@ -256,20 +258,22 @@ static const AudioRouter::AudioPinConfig voiceOutRcvPinConfigs[] = {
 	PIN_CONFIG_TERMINATOR,
 };
 
-static const AudioRouter::AudioPinConfig voiceOutSpkPinConfigs[] = {
+static const AudioRouter::AudioPinConfig voiceOutAmpPinConfigs[] = {
 	PIN_CONFIG_BOOL("Line Input 4 Differential", 1),
+	PIN_CONFIG_BOOL("LOUT2 Mixer DACHL", 1),
+	PIN_CONFIG_BOOL("ROUT2 Mixer DACHR", 1),
 	PIN_CONFIG_BOOL("LOUT2 Mixer LINH4", 1),
 	PIN_CONFIG_BOOL("ROUT2 Mixer RINH4", 1),
 	PIN_CONFIG_BOOL("GSM Receive Switch", 1),
+	PIN_CONFIG_TERMINATOR,
+};
+
+static const AudioRouter::AudioPinConfig voiceOutSpkPinConfigs[] = {
 	PIN_CONFIG_BOOL("Speaker Switch", 1),
 	PIN_CONFIG_TERMINATOR,
 };
 
 static const AudioRouter::AudioPinConfig voiceOutHpPinConfigs[] = {
-	PIN_CONFIG_BOOL("Line Input 4 Differential", 1),
-	PIN_CONFIG_BOOL("LOUT2 Mixer LINH4", 1),
-	PIN_CONFIG_BOOL("ROUT2 Mixer RINH4", 1),
-	PIN_CONFIG_BOOL("GSM Receive Switch", 1),
 	PIN_CONFIG_BOOL("Headphones Switch", 1),
 	PIN_CONFIG_TERMINATOR,
 };
@@ -286,6 +290,7 @@ static const AudioRouter::AudioPinConfig voiceOutBtPinConfigs[] = {
 
 static const AudioRouter::AudioRouteConfig voiceOutRouteConfigs[] = {
 	ROUTE_CONFIG(ENDPOINT_RCV, voiceOutRcvPinConfigs),
+	ROUTE_CONFIG(ENDPOINT_AMP, voiceOutAmpPinConfigs),
 	ROUTE_CONFIG(ENDPOINT_SPK, voiceOutSpkPinConfigs),
 	ROUTE_CONFIG(ENDPOINT_HP, voiceOutHpPinConfigs),
 	ROUTE_CONFIG_CALLBACKS(ENDPOINT_BT, voiceOutBtPinConfigs,

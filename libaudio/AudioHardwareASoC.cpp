@@ -284,8 +284,7 @@ status_t AudioHardware::setMode(int mode)
 		}
 
 		mRouter->setRouteDisable(AudioRouter::ROUTE_INPUT, true);
-		mRouter->setAudioRoute(AudioRouter::ROUTE_OUTPUT,
-					BIT(AudioRouter::ENDPOINT_RCV));
+		mRouter->setRouteDisable(AudioRouter::ROUTE_OUTPUT, true);
 		mRouter->setAudioRoute(AudioRouter::ROUTE_VOICE_IN,
 					BIT(AudioRouter::ENDPOINT_MIC_MAIN));
 		mRouter->setAudioRoute(AudioRouter::ROUTE_VOICE_OUT,
@@ -298,10 +297,7 @@ status_t AudioHardware::setMode(int mode)
 	} else {
 		mRouter->setRouteDisable(AudioRouter::ROUTE_VOICE_IN, true);
 		mRouter->setRouteDisable(AudioRouter::ROUTE_VOICE_OUT, true);
-		mRouter->setAudioRoute(AudioRouter::ROUTE_VOICE_OUT, 0);
-		mRouter->setAudioRoute(AudioRouter::ROUTE_VOICE_IN, 0);
-		mRouter->setAudioRoute(AudioRouter::ROUTE_OUTPUT, 0);
-		mRouter->setAudioRoute(AudioRouter::ROUTE_INPUT, 0);
+		mRouter->setRouteDisable(AudioRouter::ROUTE_OUTPUT, false);
 		mRouter->setRouteDisable(AudioRouter::ROUTE_INPUT, false);
 		mRouter->setVoiceVolume(0.0f);
 
