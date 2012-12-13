@@ -448,9 +448,17 @@ void AudioRouter::enablePinConfig(const AudioPinConfig *pin)
 void AudioRouter::disableRoute(enum RouteType type)
 {
 	TRACE();
-	const AudioRouteConfig *route;
+	const AudioRouteConfig *route = routeTables[type];
 
-	for (route = routeTables[type]; route->route; ++route) {
+	while (route->route)
+		++route;
+
+	if (route == routeTables[type])
+		return;
+
+	--route;
+
+	do {
 		if (!(mRoute[type] & BIT(route->route)))
 			continue;
 
@@ -458,7 +466,7 @@ void AudioRouter::disableRoute(enum RouteType type)
 
 		if (route->disable)
 			route->disable();
-	}
+	} while (route-- != routeTables[type]);
 }
 
 void AudioRouter::enableRoute(enum RouteType type)
