@@ -292,6 +292,12 @@ service pbap /system/bin/sdptool add --channel=19 PBAP
     disabled
     oneshot
 
+service map /system/bin/sdptool add --channel=16 MAS
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
 service installd /system/bin/installd
     socket installd stream 600 system system
 
