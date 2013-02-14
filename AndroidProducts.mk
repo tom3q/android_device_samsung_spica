@@ -19,3 +19,5 @@
 
 PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/full_spica.mk
+
+PRODUCT_PACKAGES += libsamsung-ril
